@@ -2,24 +2,19 @@
 __pycache__/
 *.pyc
 *.pyo
-*.pyd
-*.log
 
-# Virtual environments (ALL locations)
-venv/
-backend/venv/
-frontend/venv/
+# Environments
 .env
+.env.*
+
+# Virtualenv
+venv/
 
 # Node
 node_modules/
-frontend/node_modules/
 dist/
 
-# Docker
-*.tar
-
-# Storage
+# Runtime data
 .storage/
 
 # OS
