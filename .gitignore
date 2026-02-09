@@ -5,12 +5,15 @@ __pycache__/
 *.pyd
 *.log
 
-# Virtual environments
+# Virtual environments (ALL locations)
 venv/
+backend/venv/
+frontend/venv/
 .env
 
 # Node
 node_modules/
+frontend/node_modules/
 dist/
 
 # Docker
