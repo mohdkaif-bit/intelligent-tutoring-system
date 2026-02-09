@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.log
+
+# Virtual environments
+venv/
+.env
+
+# Node
+node_modules/
+dist/
+
+# Docker
+*.tar
+
+# Storage
+.storage/
+
+# OS
+.DS_Store
+Thumbs.db
