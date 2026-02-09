@@ -1,0 +1,46 @@
+{
+  "wages.pdf_7405e509786f": {
+    "document_id": "wages.pdf_7405e509786f",
+    "user_id": "default_user",
+    "original_filename": "wages.pdf",
+    "stored_path": ".storage\\documents\\default_user\\wages.pdf_7405e509786f.pdf",
+    "page_count": 3,
+    "file_size_bytes": 109556,
+    "upload_timestamp": "2026-02-03T17:08:36.959612",
+    "last_accessed": "2026-02-08T13:51:18.001528",
+    "embeddings_cached": false
+  },
+  "ProjectManagement.pdf_75751d5451b2": {
+    "document_id": "ProjectManagement.pdf_75751d5451b2",
+    "user_id": "default_user",
+    "original_filename": "Project Management.pdf",
+    "stored_path": ".storage\\documents\\default_user\\ProjectManagement.pdf_75751d5451b2.pdf",
+    "page_count": 57,
+    "file_size_bytes": 4348893,
+    "upload_timestamp": "2026-02-03T18:23:20.951208",
+    "last_accessed": "2026-02-04T12:18:51.298916",
+    "embeddings_cached": false
+  },
+  "ISLP_website.pdf_683d1248c5be": {
+    "document_id": "ISLP_website.pdf_683d1248c5be",
+    "user_id": "default_user",
+    "original_filename": "ISLP_website.pdf",
+    "stored_path": ".storage\\documents\\default_user\\ISLP_website.pdf_683d1248c5be.pdf",
+    "page_count": 613,
+    "file_size_bytes": 20053984,
+    "upload_timestamp": "2026-02-04T09:51:05.142912",
+    "last_accessed": "2026-02-06T18:59:53.580288",
+    "embeddings_cached": false
+  },
+  "1.12JasonBrownlee-MasterMachin_a869ae02c4ee": {
+    "document_id": "1.12JasonBrownlee-MasterMachin_a869ae02c4ee",
+    "user_id": "default_user",
+    "original_filename": "(1.12) Jason Brownlee - Master Machine Learning Algorithms (2016).pdf",
+    "stored_path": ".storage\\documents\\default_user\\1.12JasonBrownlee-MasterMachin_a869ae02c4ee.pdf",
+    "page_count": 162,
+    "file_size_bytes": 1104468,
+    "upload_timestamp": "2026-02-04T11:17:15.742859",
+    "last_accessed": "2026-02-08T13:21:20.723616",
+    "embeddings_cached": false
+  }
+}
