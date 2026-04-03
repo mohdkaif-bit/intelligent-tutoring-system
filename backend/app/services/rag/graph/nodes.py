@@ -25,12 +25,23 @@ class RAGNodes:
         """
         Retrieve relevant documents using vector similarity search.
         
+        If the adaptation layer has already pre-retrieved and reranked
+        documents, skip retrieval entirely and use those directly.
+        
         Args:
             state: Current RAG state
         
         Returns:
             Updated state with retrieved documents
         """
+        # If adaptation layer already pre-retrieved and reranked, skip retrieval
+        if state.get("top_docs"):
+            logger.info(
+                "retrieve_node: using %d pre-ranked docs from adaptation layer",
+                len(state["top_docs"])
+            )
+            return {"docs": state["top_docs"], "top_docs": state["top_docs"]}
+
         retriever = state.get("retriever")
         if not retriever:
             logger.warning("No retriever provided")
@@ -114,13 +125,20 @@ class RAGNodes:
             doc.page_content 
             for doc in state.get("top_docs", [])
         )
+
+        # Prepend style hint if adaptation layer provided one
+        style_hint = state.get("style_hint", "")
         
         prompt = self.prompts.get_prompt(
             "qa_prompt",
-            history = "",
+            history="",
             context=context_text,
             question=state["question"]
         )
+
+        # Inject style hint at the front of the prompt
+        if style_hint:
+            prompt = style_hint + prompt
         
         try:
             answer = self.llm_client.invoke(prompt, mode="quick_answer")
@@ -145,12 +163,17 @@ class RAGNodes:
             doc.page_content 
             for doc in state.get("top_docs", [])
         )
+
+        style_hint = state.get("style_hint", "")
         
         prompt = self.prompts.get_prompt(
             "concept_explanation_prompt",
             context=context_text,
             question=state["question"]
         )
+
+        if style_hint:
+            prompt = style_hint + prompt
         
         try:
             answer = self.llm_client.invoke(prompt, mode="explain_concept")
@@ -175,12 +198,17 @@ class RAGNodes:
             doc.page_content 
             for doc in state.get("top_docs", [])
         )
+
+        style_hint = state.get("style_hint", "")
         
         prompt = self.prompts.get_prompt(
             "step_by_step_prompt",
             context=context_text,
             question=state["question"]
         )
+
+        if style_hint:
+            prompt = style_hint + prompt
         
         try:
             answer = self.llm_client.invoke(prompt, mode="step_by_step")
@@ -205,12 +233,17 @@ class RAGNodes:
             doc.page_content 
             for doc in state.get("top_docs", [])
         )
+
+        style_hint = state.get("style_hint", "")
         
         prompt = self.prompts.get_prompt(
             "practice_problem_prompt",
             context=context_text,
             question=state["question"]
         )
+
+        if style_hint:
+            prompt = style_hint + prompt
         
         try:
             answer = self.llm_client.invoke(prompt, mode="generate_practice")

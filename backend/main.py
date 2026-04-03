@@ -27,17 +27,18 @@ async def lifespan(app: FastAPI):
     logger.info(f"Debug Mode: {settings.DEBUG}")
     logger.info(f"API Prefix: {settings.API_V1_PREFIX}")
     logger.info("=" * 60)
-    
+
     # Ensure storage directories exist
     settings.STORAGE_BASE_DIR.mkdir(parents=True, exist_ok=True)
     settings.DOCUMENT_STORAGE_DIR.mkdir(parents=True, exist_ok=True)
     settings.VECTOR_STORAGE_DIR.mkdir(parents=True, exist_ok=True)
     settings.MEMORY_STORAGE_DIR.mkdir(parents=True, exist_ok=True)
-    
+    (settings.STORAGE_BASE_DIR / "evaluation").mkdir(parents=True, exist_ok=True)  # NEW
+
     logger.info("✓ Storage directories initialized")
-    
+
     yield
-    
+
     # Shutdown
     logger.info(f"Shutting down {settings.APP_NAME}")
 
@@ -58,12 +59,12 @@ app = FastAPI(
 # ============================================================================
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow all origins for development
+    allow_origins=["*"],
     allow_credentials=True,
-    allow_methods=["*"],  # Allow all HTTP methods (GET, POST, PUT, DELETE, OPTIONS, etc.)
-    allow_headers=["*"],  # Allow all headers
+    allow_methods=["*"],
+    allow_headers=["*"],
     expose_headers=["*"],
-    max_age=3600,  # Cache preflight requests for 1 hour
+    max_age=3600,
 )
 
 # ============================================================================
@@ -93,7 +94,7 @@ async def health_check():
 
 if __name__ == "__main__":
     import uvicorn
-    
+
     uvicorn.run(
         "main:app",
         host="0.0.0.0",

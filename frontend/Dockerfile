@@ -2,19 +2,21 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Set API URL environment variable
+# Backend API URL
 ARG VITE_API_BASE_URL=http://localhost:8000
 ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
 
-# Copy package files and install dependencies
-COPY frontend/package*.json ./
+# Copy dependency files first (better caching)
+COPY package.json package-lock.json ./
+
+# Install dependencies
 RUN npm install
 
-# Copy all frontend source files
-COPY frontend/ .
+# Copy source files
+COPY . .
 
-# Expose port for Vite dev server
+# Expose Vite port
 EXPOSE 5173
 
-# Run development server (hot reload enabled)
+# Run Vite dev server
 CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "5173"]

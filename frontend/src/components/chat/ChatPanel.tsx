@@ -16,35 +16,73 @@ const MODES: { value: ChatMode; label: string }[] = [
   { value: "deep_analysis", label: "Deep Analysis" },
 ];
 
+const MODE_LABELS: Record<ChatMode, string> = {
+  quick_answer: "Quick Answer",
+  explain_concept: "Explain Concept",
+  step_by_step: "Step by Step",
+  practice_problems: "Practice Problems",
+  deep_analysis: "Deep Analysis",
+};
+
+const generateSessionId = (): string => {
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === "x" ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+};
+
+interface ModeSuggestion {
+  suggested_mode: ChatMode;
+  reason: string;
+}
+
 const ChatPanel = ({ documentId, currentPage }: ChatPanelProps) => {
   const [history, setHistory] = useState<ChatHistoryItem[]>([]);
   const [question, setQuestion] = useState("");
   const [mode, setMode] = useState<ChatMode>("quick_answer");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [sessionId] = useState<string>(() => generateSessionId());
+
+  // Adaptation B — mode suggestion state
+  const [modeSuggestion, setModeSuggestion] = useState<ModeSuggestion | null>(null);
+
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Auto-scroll to latest message
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [history, loading]);
 
-  // Focus textarea on mount
   useEffect(() => {
     textareaRef.current?.focus();
   }, []);
+
+  // Clear suggestion when user manually changes mode
+  const handleModeChange = (newMode: ChatMode) => {
+    setMode(newMode);
+    setModeSuggestion(null);
+  };
+
+  // Accept the suggestion — switch mode and dismiss banner
+  const acceptSuggestion = () => {
+    if (modeSuggestion) {
+      setMode(modeSuggestion.suggested_mode);
+      setModeSuggestion(null);
+    }
+  };
 
   const handleSend = useCallback(async () => {
     const trimmed = question.trim();
     if (!trimmed || loading) return;
 
-    // Optimistically add user message
     const userMsg: ChatHistoryItem = { role: "user", content: trimmed };
     setHistory((prev) => [...prev, userMsg]);
     setQuestion("");
     setLoading(true);
     setError(null);
+    setModeSuggestion(null); // clear previous suggestion on new send
 
     try {
       const res = await askQuestion({
@@ -52,7 +90,8 @@ const ChatPanel = ({ documentId, currentPage }: ChatPanelProps) => {
         question: trimmed,
         mode,
         page_number: currentPage,
-        history, // send history before this message
+        history,
+        session_id: sessionId,
       });
 
       if (res.success) {
@@ -60,29 +99,36 @@ const ChatPanel = ({ documentId, currentPage }: ChatPanelProps) => {
           ...prev,
           { role: "assistant", content: res.answer },
         ]);
+
+        // Adaptation B — show banner if backend suggests a different mode
+        if (res.suggested_mode && res.suggested_mode !== mode && res.suggestion_reason) {
+          setModeSuggestion({
+            suggested_mode: res.suggested_mode,
+            reason: res.suggestion_reason,
+          });
+        }
       } else {
         setError(res.error || "Failed to get answer");
-        // Remove optimistic user message on failure
         setHistory((prev) => prev.slice(0, -1));
-        setQuestion(trimmed); // Restore question
+        setQuestion(trimmed);
       }
     } catch (e) {
-      const errorMessage = e instanceof Error ? e.message : "Something went wrong";
+      const errorMessage =
+        e instanceof Error ? e.message : "Something went wrong";
       setError(errorMessage);
-      // Remove optimistic user message on failure
       setHistory((prev) => prev.slice(0, -1));
-      setQuestion(trimmed); // Restore question
+      setQuestion(trimmed);
     } finally {
       setLoading(false);
-      // Focus back to textarea
       setTimeout(() => textareaRef.current?.focus(), 100);
     }
-  }, [question, loading, documentId, mode, currentPage, history]);
+  }, [question, loading, documentId, mode, currentPage, history, sessionId]);
 
   const clearChat = () => {
     setHistory([]);
     setError(null);
     setQuestion("");
+    setModeSuggestion(null);
     textareaRef.current?.focus();
   };
 
@@ -108,7 +154,7 @@ const ChatPanel = ({ documentId, currentPage }: ChatPanelProps) => {
         {MODES.map((m) => (
           <button
             key={m.value}
-            onClick={() => setMode(m.value)}
+            onClick={() => handleModeChange(m.value)}
             disabled={loading}
             style={{
               ...styles.modeButton,
@@ -120,6 +166,39 @@ const ChatPanel = ({ documentId, currentPage }: ChatPanelProps) => {
           </button>
         ))}
       </div>
+
+      {/* Adaptation B — Mode Suggestion Banner */}
+      {modeSuggestion && (
+        <div style={styles.suggestionBanner}>
+          <div style={styles.suggestionContent}>
+            <span style={styles.suggestionIcon}>💡</span>
+            <div style={styles.suggestionText}>
+              <span style={styles.suggestionTitle}>
+                Try{" "}
+                <strong>{MODE_LABELS[modeSuggestion.suggested_mode]}</strong>{" "}
+                mode?
+              </span>
+              <span style={styles.suggestionReason}>
+                {modeSuggestion.reason}
+              </span>
+            </div>
+          </div>
+          <div style={styles.suggestionActions}>
+            <button
+              onClick={acceptSuggestion}
+              style={styles.suggestionAccept}
+            >
+              Switch
+            </button>
+            <button
+              onClick={() => setModeSuggestion(null)}
+              style={styles.suggestionDismiss}
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Messages */}
       <div style={styles.messages}>
@@ -259,6 +338,76 @@ const styles: Record<string, React.CSSProperties> = {
     color: "var(--color-text-dark)",
     borderColor: "transparent",
   },
+  // ---------------------------------------------------------------- //
+  // Suggestion banner styles                                          //
+  // ---------------------------------------------------------------- //
+  suggestionBanner: {
+    display: "flex",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: 12,
+    padding: "10px 14px",
+    background: "rgba(99, 102, 241, 0.08)",
+    borderBottom: "1px solid rgba(99, 102, 241, 0.2)",
+    flexShrink: 0,
+  },
+  suggestionContent: {
+    display: "flex",
+    alignItems: "flex-start",
+    gap: 8,
+    flex: 1,
+    minWidth: 0,
+  },
+  suggestionIcon: {
+    fontSize: 16,
+    flexShrink: 0,
+    marginTop: 1,
+  },
+  suggestionText: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 2,
+    minWidth: 0,
+  },
+  suggestionTitle: {
+    fontSize: 13,
+    color: "var(--color-text)",
+    lineHeight: 1.4,
+  },
+  suggestionReason: {
+    fontSize: 12,
+    color: "var(--color-text-muted)",
+    lineHeight: 1.4,
+  },
+  suggestionActions: {
+    display: "flex",
+    alignItems: "center",
+    gap: 6,
+    flexShrink: 0,
+  },
+  suggestionAccept: {
+    background: "#6366f1",
+    color: "white",
+    border: "none",
+    borderRadius: "var(--radius-sm)",
+    padding: "5px 12px",
+    fontSize: 12,
+    fontWeight: 600,
+    cursor: "pointer",
+    transition: "all 0.2s",
+    whiteSpace: "nowrap",
+  },
+  suggestionDismiss: {
+    background: "none",
+    border: "none",
+    color: "var(--color-text-muted)",
+    fontSize: 14,
+    cursor: "pointer",
+    padding: "4px 6px",
+    borderRadius: "var(--radius-sm)",
+    lineHeight: 1,
+  },
+  // ---------------------------------------------------------------- //
   messages: {
     flex: 1,
     overflowY: "auto",

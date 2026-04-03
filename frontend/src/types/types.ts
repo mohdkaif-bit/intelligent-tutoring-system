@@ -18,8 +18,9 @@ export interface AskQuestionRequest {
   document_id: string;
   question: string;
   mode: ChatMode;
-  page_number: number;
+  page_number?: number;
   history: ChatHistoryItem[];
+  session_id?: string;
 }
 
 export interface AskQuestionResponse {
@@ -28,6 +29,9 @@ export interface AskQuestionResponse {
   mode: ChatMode;
   error?: string;
   cached_embeddings_used?: boolean;
+  // Adaptation B — mode suggestion fields
+  suggested_mode?: ChatMode | null;
+  suggestion_reason?: string | null;
 }
 
 // ================================
@@ -144,13 +148,14 @@ export interface ProgressResponse {
   last_accessed?: string;
 }
 
+// Matches actual backend response shape:
+// { document_id, page_number, priority, reasons[], suggestion }
 export interface RevisionSuggestion {
   document_id: string;
-  document_title: string;
-  pages_to_review: number[];
-  reason: string;
-  priority: "high" | "medium" | "low";
-  suggested_date?: string;
+  page_number: number;
+  priority: number;
+  reasons: string[];
+  suggestion: string;
 }
 
 // ================================
@@ -190,11 +195,8 @@ export interface AccountProgressResponse {
   error?: string;
 }
 
-export interface RevisionSuggestionsResponse {
-  success: boolean;
-  suggestions: RevisionSuggestion[];
-  error?: string;
-}
+// Backend returns a plain array of RevisionSuggestion
+export type RevisionSuggestionsResponse = RevisionSuggestion[];
 
 // ================================
 // Embeddings / Vector Store Types

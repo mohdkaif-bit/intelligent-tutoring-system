@@ -2,24 +2,22 @@ FROM python:3.10-slim
 
 WORKDIR /app
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y build-essential && rm -rf /var/lib/apt/lists/*
-RUN pip install --upgrade pip
+# Install only required system deps
+RUN apt-get update && apt-get install -y \
+    gcc \
+ && rm -rf /var/lib/apt/lists/*
 
-# Copy only requirements first (for layer caching)
-COPY backend/requirements.txt .
+# Copy requirements first
+COPY requirements.txt .
 
-# Install PyTorch CPU version FIRST (your version is 2.10.0)
-RUN pip install --no-cache-dir \
-    --index-url https://download.pytorch.org/whl/cpu \
-    --extra-index-url https://pypi.org/simple \
-    torch==2.10.0
+# Install everything in ONE layer (important)
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir \
+    --index-url https://download.pytorch.org/whl/cpu torch && \
+    pip install --no-cache-dir -r requirements.txt
 
-# Install other requirements
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Copy the entire backend directory
-COPY backend/ /app/
+# Copy project
+COPY . .
 
 EXPOSE 8000
 

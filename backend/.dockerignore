@@ -1,32 +1,17 @@
-# Python
+# Python cache
 __pycache__/
 *.py[cod]
-*$py.class
-*.so
-.Python
-*.egg-info/
-dist/
-build/
-*.egg
+*.pyo
+*.pyd
 
-# Virtual environments
+# Virtual env
 venv/
-env/
-ENV/
-.venv
+.venv/
 
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
+# Node
+node_modules/
 
-# OS
-.DS_Store
-Thumbs.db
-
-# Storage/Data
+# Runtime storage
 .storage/
 *.db
 *.sqlite
@@ -34,23 +19,24 @@ Thumbs.db
 
 # Git
 .git/
-.gitignore
 
-# Test
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Tests
 .pytest_cache/
 .coverage
 htmlcov/
 
-# Docs
-docs/
-*.md
-README.md
+# Secrets (important)
+.env
 
-# Node (shouldn't be in backend)
-node_modules/
-package.json
-package-lock.json
-
-# Docker
-Dockerfile
-.dockerignore
+# Build artifacts
+dist/
+build/
+*.egg-info

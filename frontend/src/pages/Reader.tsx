@@ -14,7 +14,9 @@ const Reader: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage, setCurrentPage] = useState(
+  location.state?.initialPage || 1
+);
   const [totalPages, setTotalPages] = useState<number>(
     location.state?.totalPages || 0
   );
