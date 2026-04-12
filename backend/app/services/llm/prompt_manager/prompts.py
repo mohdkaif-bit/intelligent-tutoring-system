@@ -41,7 +41,7 @@ ABSOLUTE RULES — DO NOT BREAK UNDER ANY CIRCUMSTANCE:
 6.If the question asks for a definition and no explicit definition is present in the material,
 clearly state that the definition is not explicitly provided and summarize how the concept
 is explained instead.
-
+7.Keep your answer concise — 3 to 4 sentences maximum. Every sentence must be complete and meaningful. Do not cut off mid-thought.
 ============================================================
 
 Previous Conversation:

@@ -4,6 +4,7 @@ Handles learning progress tracking and analytics.
 """
 from fastapi import APIRouter, HTTPException, status
 from typing import List
+from datetime import datetime, timedelta
 
 from app.models.progress.schemas import (
     PageInteractionUpdate,
@@ -23,18 +24,18 @@ DEFAULT_USER_ID = "default_user"
 async def update_interaction(update: PageInteractionUpdate):
     """
     Update page interaction.
-    
+
     Args:
         update: Page interaction update
-    
+
     Returns:
         Success confirmation
     """
     try:
         memory = LearningMemory(user_id=DEFAULT_USER_ID)
-        
+
         # Route to appropriate update method based on interaction type
-        if update.interaction_type == "view":
+        if update.interaction_type in ("view", "page_view"):       # ← FIXED
             memory.update_page_view(
                 document_id=update.document_id,
                 page_number=update.page_number,
@@ -82,18 +83,21 @@ async def update_interaction(update: PageInteractionUpdate):
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Unknown interaction type: {update.interaction_type}"
             )
-        
-        logger.info(f"Updated {update.interaction_type} interaction for page {update.page_number}")
-        
+
+        logger.info(
+            "Updated %s interaction for page %s",
+            update.interaction_type, update.page_number,
+        )
+
         return {
             "success": True,
             "message": "Interaction updated successfully"
         }
-        
+
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error updating interaction: {e}")
+        logger.error("Error updating interaction: %s", e)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to update interaction: {str(e)}"
@@ -104,22 +108,22 @@ async def update_interaction(update: PageInteractionUpdate):
 async def get_account_progress():
     """
     Get account-level learning progress.
-    
+
     Returns:
         Progress metrics across all documents
     """
     try:
         memory = LearningMemory(user_id=DEFAULT_USER_ID)
         progress = memory.get_account_progress()
-        
+
         logger.info("Retrieved account progress")
-        
+
         # Return the progress data directly (not wrapped in ProgressResponse)
         # Frontend expects the raw data
         return progress
-        
+
     except Exception as e:
-        logger.error(f"Error getting account progress: {e}")
+        logger.error("Error getting account progress: %s", e)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to get account progress: {str(e)}"
@@ -130,26 +134,26 @@ async def get_account_progress():
 async def get_document_progress(document_id: str):
     """
     Get progress for a specific document.
-    
+
     Args:
         document_id: Document identifier
-    
+
     Returns:
         Progress metrics for the document
     """
     try:
         memory = LearningMemory(user_id=DEFAULT_USER_ID)
         progress = memory.get_document_progress(document_id)
-        
-        logger.info(f"Retrieved progress for document: {document_id}")
-        
+
+        logger.info("Retrieved progress for document: %s", document_id)
+
         return {
             "success": True,
             **progress
         }
-        
+
     except Exception as e:
-        logger.error(f"Error getting document progress: {e}")
+        logger.error("Error getting document progress: %s", e)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to get document progress: {str(e)}"
@@ -160,30 +164,30 @@ async def get_document_progress(document_id: str):
 async def get_revision_suggestions(max_suggestions: int = 10):
     """
     Get evidence-based revision suggestions.
-    
+
     Args:
         max_suggestions: Maximum number of suggestions to return
-    
+
     Returns:
         List of pages needing revision
     """
     try:
         memory = LearningMemory(user_id=DEFAULT_USER_ID)
         suggestions = memory.get_revision_suggestions(max_suggestions=max_suggestions)
-        
-        logger.info(f"Retrieved {len(suggestions)} revision suggestions")
-        
+
+        logger.info("Retrieved %d revision suggestions", len(suggestions))
+
         return suggestions
-        
+
     except Exception as e:
-        logger.error(f"Error getting revision suggestions: {e}")
+        logger.error("Error getting revision suggestions: %s", e)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to get revision suggestions: {str(e)}"
         )
 
 
-# Additional helpful endpoints for tracking
+# ── shortcut endpoints ────────────────────────────────────────────────────────
 
 @router.post("/page-view")
 async def track_page_view(
@@ -198,12 +202,15 @@ async def track_page_view(
     try:
         memory = LearningMemory(user_id=DEFAULT_USER_ID)
         memory.update_page_view(document_id, page_number, time_spent)
-        
-        logger.info(f"Tracked page view: doc={document_id}, page={page_number}, time={time_spent}s")
-        
+
+        logger.info(
+            "Tracked page view: doc=%s, page=%d, time=%ds",
+            document_id, page_number, time_spent,
+        )
+
         return {"success": True}
     except Exception as e:
-        logger.error(f"Error tracking page view: {e}")
+        logger.error("Error tracking page view: %s", e)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(e)
@@ -222,12 +229,12 @@ async def track_question(
     try:
         memory = LearningMemory(user_id=DEFAULT_USER_ID)
         memory.update_explanation(document_id, page_number)
-        
-        logger.info(f"Tracked question: doc={document_id}, page={page_number}")
-        
+
+        logger.info("Tracked question: doc=%s, page=%d", document_id, page_number)
+
         return {"success": True}
     except Exception as e:
-        logger.error(f"Error tracking question: {e}")
+        logger.error("Error tracking question: %s", e)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(e)
@@ -247,34 +254,35 @@ async def track_quiz(
     try:
         memory = LearningMemory(user_id=DEFAULT_USER_ID)
         memory.update_quiz(document_id, page_number, score)
-        
-        logger.info(f"Tracked quiz: doc={document_id}, page={page_number}, score={score}")
-        
+
+        logger.info(
+            "Tracked quiz: doc=%s, page=%d, score=%.2f",
+            document_id, page_number, score,
+        )
+
         return {"success": True}
     except Exception as e:
-        logger.error(f"Error tracking quiz: {e}")
+        logger.error("Error tracking quiz: %s", e)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(e)
         )
 
 
-# Debug endpoint - remove in production
+# ── debug endpoint — remove in production ────────────────────────────────────
+
 @router.get("/debug/memory")
 async def debug_memory():
-    """
-    Debug endpoint to view raw memory data.
-    """
+    """Debug endpoint to view raw memory data."""
     try:
         memory = LearningMemory(user_id=DEFAULT_USER_ID)
-        
-        # Convert to serializable format
+
         memory_data = {}
         for doc_id, pages in memory.memory.items():
             memory_data[doc_id] = {}
             for page_num, interaction in pages.items():
                 memory_data[doc_id][str(page_num)] = interaction.to_dict()
-        
+
         return {
             "success": True,
             "user_id": DEFAULT_USER_ID,
@@ -284,31 +292,26 @@ async def debug_memory():
             "progress": memory.get_account_progress()
         }
     except Exception as e:
-        logger.error(f"Error getting debug info: {e}")
+        logger.error("Error getting debug info: %s", e)
         return {"success": False, "error": str(e)}
 
 
-
-"""
-Add this endpoint to your app/api/routes/progress.py file
-"""
-from datetime import datetime, timedelta
+# ── revision endpoints ────────────────────────────────────────────────────────
 
 @router.get("/document/{document_id}/revisions")
 async def get_document_revisions(document_id: str):
     """
     Get revision statistics and suggestions for a specific document.
-    
+
     Args:
         document_id: Document identifier
-    
+
     Returns:
         Revision statistics including streak, mastery level, and pages needing revision
     """
     try:
         memory = LearningMemory(user_id=DEFAULT_USER_ID)
-        
-        # Check if document exists
+
         if document_id not in memory.memory:
             return {
                 "success": True,
@@ -320,55 +323,55 @@ async def get_document_revisions(document_id: str):
                 "mastery_level": 0,
                 "pages_needing_revision": []
             }
-        
+
         pages = memory.memory[document_id]
-        
-        # Calculate stats
+
         total_revisions = 0
         last_revision_date = None
         total_time = 0
         revision_dates = []
         pages_needing_revision = []
-        
+
         for page_num, interaction in pages.items():
-            # Count revisions (views after first view)
             if interaction.view_count > 1:
                 total_revisions += interaction.view_count - 1
-            
-            # Track time spent
+
             if hasattr(interaction, 'time_spent_seconds'):
                 total_time += interaction.time_spent_seconds
-            
-            # Track last revision date
+
             if interaction.last_interaction_timestamp:
                 if last_revision_date is None or interaction.last_interaction_timestamp > last_revision_date:
                     last_revision_date = interaction.last_interaction_timestamp
-                    
+
                 try:
-                    revision_dates.append(datetime.fromisoformat(interaction.last_interaction_timestamp.replace('Z', '+00:00')))
+                    revision_dates.append(
+                        datetime.fromisoformat(
+                            interaction.last_interaction_timestamp.replace('Z', '+00:00')
+                        )
+                    )
                 except (ValueError, AttributeError):
                     pass
-            
-            # Identify pages needing revision
+
             days_since_last_view = None
             if interaction.last_interaction_timestamp:
                 try:
-                    last_view = datetime.fromisoformat(interaction.last_interaction_timestamp.replace('Z', '+00:00'))
+                    last_view = datetime.fromisoformat(
+                        interaction.last_interaction_timestamp.replace('Z', '+00:00')
+                    )
                     days_since_last_view = (datetime.now().astimezone() - last_view).days
                 except (ValueError, AttributeError):
                     pass
-            
-            # Pages not viewed in 3+ days or with low quiz scores need revision
+
             needs_revision = False
             priority = "low"
-            
+
             if days_since_last_view and days_since_last_view >= 3:
                 needs_revision = True
                 priority = "high" if days_since_last_view >= 7 else "medium"
             elif interaction.quiz_attempted and interaction.quiz_score and interaction.quiz_score < 0.7:
                 needs_revision = True
                 priority = "medium"
-            
+
             if needs_revision:
                 pages_needing_revision.append({
                     "page_number": page_num,
@@ -376,14 +379,10 @@ async def get_document_revisions(document_id: str):
                     "quiz_score": round(interaction.quiz_score * 100, 1) if interaction.quiz_score else None,
                     "priority": priority
                 })
-        
-        # Calculate revision streak (consecutive days with revisions)
+
         revision_streak = _calculate_streak(revision_dates) if revision_dates else 0
-        
-        # Calculate mastery level (based on quiz scores and revision frequency)
-        mastery_level = _calculate_mastery(pages)
-        
-        # Suggest next revision date (3 days from last revision)
+        mastery_level   = _calculate_mastery(pages)
+
         next_suggested_revision = None
         if last_revision_date:
             try:
@@ -391,9 +390,12 @@ async def get_document_revisions(document_id: str):
                 next_suggested_revision = (last_date + timedelta(days=3)).isoformat()
             except (ValueError, AttributeError):
                 pass
-        
-        logger.info(f"Retrieved revision stats for {document_id}: {total_revisions} revisions, mastery {mastery_level:.1f}%")
-        
+
+        logger.info(
+            "Retrieved revision stats for %s: %d revisions, mastery %.1f%%",
+            document_id, total_revisions, mastery_level,
+        )
+
         return {
             "success": True,
             "total_revisions": total_revisions,
@@ -403,46 +405,44 @@ async def get_document_revisions(document_id: str):
             "total_time_spent_seconds": total_time,
             "mastery_level": round(mastery_level, 1),
             "pages_needing_revision": sorted(
-                pages_needing_revision, 
-                key=lambda x: (x['priority'] == 'high', x.get('days_since_last_view', 0)), 
+                pages_needing_revision,
+                key=lambda x: (x['priority'] == 'high', x.get('days_since_last_view', 0)),
                 reverse=True
             )
         }
-        
+
     except Exception as e:
-        logger.error(f"Error getting revision stats for {document_id}: {e}")
+        logger.error("Error getting revision stats for %s: %s", document_id, e)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to get revision stats: {str(e)}"
         )
 
 
+# ── private helpers ───────────────────────────────────────────────────────────
+
 def _calculate_streak(revision_dates: List[datetime]) -> int:
     """Calculate consecutive days with revisions."""
     if not revision_dates:
         return 0
-    
-    # Sort dates in descending order
+
     sorted_dates = sorted(revision_dates, reverse=True)
-    
-    # Get unique days only
+
     unique_days = []
     for dt in sorted_dates:
         day = dt.date()
         if not unique_days or day != unique_days[-1]:
             unique_days.append(day)
-    
-    # Count consecutive days from today
+
     streak = 0
-    today = datetime.now().date()
-    
+    today  = datetime.now().date()
+
     for i, day in enumerate(unique_days):
-        expected_day = today - timedelta(days=i)
-        if day == expected_day:
+        if day == today - timedelta(days=i):
             streak += 1
         else:
             break
-    
+
     return streak
 
 
@@ -450,17 +450,17 @@ def _calculate_mastery(pages: dict) -> float:
     """Calculate overall mastery level (0-100) based on engagement and performance."""
     if not pages:
         return 0.0
-    
+
     total_score = 0
-    count = 0
-    
+    count       = 0
+
     for page_num, interaction in pages.items():
         page_score = 0
-        
+
         # Quiz performance (50% weight)
         if interaction.quiz_attempted and interaction.quiz_score is not None:
             page_score += interaction.quiz_score * 50
-        
+
         # View frequency (30% weight)
         if interaction.view_count >= 3:
             page_score += 30
@@ -468,11 +468,13 @@ def _calculate_mastery(pages: dict) -> float:
             page_score += 20
         elif interaction.view_count >= 1:
             page_score += 10
-        
+
         # Recency (20% weight)
         if interaction.last_interaction_timestamp:
             try:
-                last_view = datetime.fromisoformat(interaction.last_interaction_timestamp.replace('Z', '+00:00'))
+                last_view = datetime.fromisoformat(
+                    interaction.last_interaction_timestamp.replace('Z', '+00:00')
+                )
                 days_ago = (datetime.now().astimezone() - last_view).days
                 if days_ago <= 1:
                     page_score += 20
@@ -482,8 +484,8 @@ def _calculate_mastery(pages: dict) -> float:
                     page_score += 10
             except (ValueError, AttributeError):
                 pass
-        
+
         total_score += page_score
-        count += 1
-    
+        count       += 1
+
     return (total_score / count) if count > 0 else 0.0

@@ -38,6 +38,20 @@ class ProgressResponse(BaseModel):
     engagement_rate: Optional[float] = Field(default=0.0, description="Percentage of pages with engagement")
 
 
+
+class PageInteractionUpdate(BaseModel):
+    """Update for page interaction."""
+    document_id: str
+    page_number: int
+    interaction_type: Literal[
+        "view", "page_view", "selection", "reframe", "explanation", "quiz", "self_assessment"
+    ]
+    time_spent: Optional[int] = None
+    quiz_score: Optional[float] = None
+    self_assessment: Optional[Literal["not_clear", "somewhat_clear", "very_clear"]] = None
+    metadata: Optional[dict] = None  # accept frontend timestamp etc.
+
+
 class RevisionSuggestion(BaseModel):
     """Suggestion for page revision."""
     document_id: str

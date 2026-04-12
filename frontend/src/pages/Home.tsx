@@ -6,6 +6,7 @@ import { DocumentMetadata, RevisionSuggestion } from "../types/types";
 import {
   uploadDocument as apiUploadDocument,
   listDocuments as apiListDocuments,
+  deleteDocument,
   getAccountProgress,
   getRevisionSuggestions,
 } from "../api/api";
@@ -15,9 +16,9 @@ import {
 // ------------------------------------------------------------------ //
 
 function priorityColor(priority: number): string {
-  if (priority >= 5) return "#ef4444"; // red — high
-  if (priority >= 3) return "#f59e0b"; // amber — medium
-  return "#10b981";                    // green — low
+  if (priority >= 5) return "#ef4444";
+  if (priority >= 3) return "#f59e0b";
+  return "#10b981";
 }
 
 function priorityLabel(priority: number): string {
@@ -46,6 +47,7 @@ const Home: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [dragActive, setDragActive] = useState(false);
   const [progressStats, setProgressStats] = useState<any>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   // Right sidebar tab state
   const [rightTab, setRightTab] = useState<"documents" | "suggestions">("documents");
@@ -57,7 +59,6 @@ const Home: React.FC = () => {
     loadProgress();
   }, []);
 
-  // Load suggestions when tab is selected
   useEffect(() => {
     if (rightTab === "suggestions") {
       loadSuggestions();
@@ -102,7 +103,6 @@ const Home: React.FC = () => {
   const loadSuggestions = async () => {
     setSuggestionsLoading(true);
     try {
-      // Backend returns a plain array
       const data = await getRevisionSuggestions();
       const arr = Array.isArray(data) ? data : [];
       setSuggestions(arr);
@@ -164,16 +164,30 @@ const Home: React.FC = () => {
     });
   };
 
-  // Navigate to the relevant document+page from a suggestion
+  const handleDeleteDocument = async (e: React.MouseEvent, documentId: string) => {
+    e.stopPropagation();
+    if (!window.confirm("Delete this document? This cannot be undone.")) return;
+    setDeletingId(documentId);
+    try {
+      await deleteDocument(documentId);
+      setDocuments((prev) => prev.filter((d) => d.document_id !== documentId));
+      await loadProgress();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to delete document");
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   const handleSuggestionClick = (s: RevisionSuggestion) => {
-  const doc = documents.find(d => d.document_id === s.document_id);
-  navigate(`/reader/${s.document_id}`, {
-    state: {
-      totalPages: doc?.page_count,
-      initialPage: s.page_number,
-    },
-  });
-};
+    const doc = documents.find((d) => d.document_id === s.document_id);
+    navigate(`/reader/${s.document_id}`, {
+      state: {
+        totalPages: doc?.page_count,
+        initialPage: s.page_number,
+      },
+    });
+  };
 
   const formatStudyTime = (minutes: number) => {
     if (minutes === 0) return "0 min";
@@ -441,9 +455,7 @@ const Home: React.FC = () => {
                 <div style={styles.emptyState}>
                   <div style={styles.emptyIcon}>📄</div>
                   <p style={styles.emptyText}>No documents yet</p>
-                  <p style={styles.emptySubtext}>
-                    Upload a PDF to get started
-                  </p>
+                  <p style={styles.emptySubtext}>Upload a PDF to get started</p>
                 </div>
               ) : (
                 documents.map((doc) => (
@@ -451,6 +463,8 @@ const Home: React.FC = () => {
                     key={doc.document_id}
                     document={doc}
                     onClick={() => handleDocumentClick(doc)}
+                    onDelete={(e) => handleDeleteDocument(e, doc.document_id)}
+                    isDeleting={deletingId === doc.document_id}
                   />
                 ))
               )}
@@ -508,7 +522,9 @@ const FeatureCard: React.FC<{
 const DocumentCard: React.FC<{
   document: DocumentMetadata;
   onClick: () => void;
-}> = ({ document, onClick }) => (
+  onDelete: (e: React.MouseEvent) => void;
+  isDeleting: boolean;
+}> = ({ document, onClick, onDelete, isDeleting }) => (
   <div style={styles.documentCard} onClick={onClick}>
     <div style={styles.documentIcon}>📄</div>
     <div style={styles.documentInfo}>
@@ -523,6 +539,18 @@ const DocumentCard: React.FC<{
         {new Date(document.upload_timestamp).toLocaleDateString()}
       </p>
     </div>
+    <button
+      onClick={onDelete}
+      disabled={isDeleting}
+      style={{
+        ...styles.deleteBtn,
+        opacity: isDeleting ? 0.4 : 0.5,
+        cursor: isDeleting ? "not-allowed" : "pointer",
+      }}
+      title="Delete document"
+    >
+      {isDeleting ? "⏳" : "🗑️"}
+    </button>
   </div>
 );
 
@@ -536,7 +564,6 @@ const SuggestionCard: React.FC<{
 
   return (
     <div style={styles.suggestionCard} onClick={onClick}>
-      {/* Priority badge */}
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
         <span
           style={{
@@ -550,10 +577,8 @@ const SuggestionCard: React.FC<{
         <span style={styles.suggestionPage}>Page {s.page_number}</span>
       </div>
 
-      {/* Doc name */}
       <p style={styles.suggestionDoc}>{docName}</p>
 
-      {/* Reason pills */}
       <div style={styles.reasonsRow}>
         {s.reasons.map((r, i) => (
           <span key={i} style={styles.reasonPill}>
@@ -562,7 +587,6 @@ const SuggestionCard: React.FC<{
         ))}
       </div>
 
-      {/* Arrow hint */}
       <div style={styles.suggestionArrow}>→ Open page</div>
     </div>
   );
@@ -638,7 +662,6 @@ const styles: Record<string, React.CSSProperties> = {
     color: "var(--color-text)",
     margin: 0,
   },
-  // Tab styles
   tabHeader: {
     display: "flex",
     borderBottom: "1px solid var(--color-border)",
@@ -678,7 +701,6 @@ const styles: Record<string, React.CSSProperties> = {
     overflowY: "auto",
     padding: "12px",
   },
-  // Suggestion card
   suggestionCard: {
     background: "var(--color-bg)",
     border: "1px solid var(--color-border)",
@@ -730,7 +752,6 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 600,
     textAlign: "right" as const,
   },
-  // Progress
   progressContent: {
     flex: 1,
     overflowY: "auto",
@@ -781,7 +802,6 @@ const styles: Record<string, React.CSSProperties> = {
   },
   progressDetailLabel: { color: "var(--color-text-muted)" },
   progressDetailValue: { fontWeight: 600, color: "var(--color-text)" },
-  // Upload
   uploadSection: { marginBottom: 48 },
   dropzone: {
     background: "var(--color-surface)",
@@ -879,12 +899,12 @@ const styles: Record<string, React.CSSProperties> = {
     padding: "16px",
     marginBottom: "8px",
     display: "flex",
-    alignItems: "flex-start",
+    alignItems: "center",
     gap: 12,
     cursor: "pointer",
     transition: "all 0.2s",
   },
-  documentIcon: { fontSize: 28, flexShrink: 0, marginTop: 4 },
+  documentIcon: { fontSize: 28, flexShrink: 0 },
   documentInfo: { flex: 1, minWidth: 0 },
   documentTitle: {
     fontSize: 14,
@@ -905,6 +925,16 @@ const styles: Record<string, React.CSSProperties> = {
   },
   cachedBadge: { fontSize: 14 },
   documentDate: { fontSize: 11, color: "var(--color-text-muted)", margin: 0 },
+  deleteBtn: {
+    background: "none",
+    border: "none",
+    fontSize: 16,
+    padding: "4px 6px",
+    borderRadius: 6,
+    flexShrink: 0,
+    transition: "opacity 0.2s, background 0.2s",
+    lineHeight: 1,
+  },
   loadingDocuments: { display: "flex", justifyContent: "center", padding: 40 },
   emptyState: { textAlign: "center" as const, padding: "60px 20px" },
   emptyIcon: { fontSize: 48, marginBottom: 16, opacity: 0.5 },
