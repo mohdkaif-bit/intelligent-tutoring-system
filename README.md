@@ -1,193 +1,235 @@
-🧠 Intelligent Tutoring System
+# 🧠 Intelligent Personalized Tutoring System
 
-An AI-powered Intelligent Tutoring System that allows users to upload learning documents, generate embeddings, track learning progress, and interact with content using Retrieval-Augmented Generation (RAG).
+An AI-powered tutoring system that delivers **personalized, document-grounded learning** using **RAG, hybrid retrieval (BM25 + semantic search), LangGraph-based reasoning, and persistent memory**.
 
-The system is built with a FastAPI backend, Vite + React frontend, Dockerized deployment, and is designed to run locally or on AWS EC2.
+---
 
-🚀 Features
+## 🚀 Overview
 
-📄 Upload and manage learning documents
+This project implements a next-generation **Intelligent Tutoring System (ITS)** that goes beyond traditional LLM-based Q&A systems by incorporating:
 
-🔍 Semantic search using embeddings
+* 📚 **Document-grounded learning (RAG)**
+* 🧠 **Persistent memory for personalization**
+* 🔍 **Hybrid retrieval (BM25 + semantic similarity)**
+* 🔄 **Multi-step reasoning using LangGraph**
+* 🎯 **Multi-mode learning experience**
+* 📊 **Quiz generation & evaluation**
+* ✍️ **Text reframing for better understanding**
 
-🧠 RAG-based AI responses
+The system enables learners to upload PDFs and receive **accurate, structured, and adaptive explanations** aligned with their own study material.
 
-📊 User learning progress tracking
+---
 
-⚡ FastAPI backend with modular architecture
+## 🏗️ System Architecture
 
-🌐 Vite + React frontend
+The system follows a **modular multi-layer architecture**:
 
-🐳 Docker & Docker Compose support
+* **Frontend** → React (TypeScript)
+* **Backend** → FastAPI (Python)
+* **Retrieval Layer** → BM25 + FAISS (Hybrid Search)
+* **Reasoning Engine** → LangGraph (multi-node pipeline)
+* **LLM** → Groq (LLaMA 3.1)
+* **Memory Module** → Persistent user interaction storage
 
-☁️ AWS EC2 deployment ready
+---
 
-🏗️ Tech Stack
-Backend
+## 🔍 Key Features
 
-Python 3.10
+### 🧠 1. Memory-Based Personalization
 
-FastAPI
+* Stores user history (questions, responses, patterns)
+* Avoids repetition and adapts explanations
+* Tracks weak areas and misconceptions
 
-Uvicorn
+---
 
-Sentence Transformers
+### 🔎 2. Hybrid Retrieval Pipeline
 
-Vector Store (local storage)
+* Combines:
 
-Groq LLM API
+  * **BM25 (lexical search)**
+  * **Semantic similarity (FAISS embeddings)**
+* Uses **Reciprocal Rank Fusion (RRF)** for better ranking
+* Improves recall + precision significantly
 
-Docker
+---
 
-Frontend
+### 🔁 3. LangGraph Multi-Step Reasoning
 
-React
+Pipeline includes:
 
-Vite
+1. Retrieval Node
+2. Re-ranking Node
+3. Summarization Node (analysis mode)
+4. Combine Node
+5. Answer Generation Node
+6. Memory Update Node
 
-TypeScript
+✔ Supports **adaptive workflows & conditional logic**
 
-Docker
+---
 
-DevOps
+### 🎯 4. Multi-Mode Learning
 
-Docker & Docker Compose
+Supports different interaction modes:
 
-AWS EC2 (t3.micro – Free Tier)
+* ⚡ Quick Answer
+* 📖 Explain Concept
+* 🧩 Step-by-Step Solution
+* 🔬 Deep Analysis
+* ❓ Question Generation
 
-GitHub
+---
 
-📁 Project Structure
-intelligent-tutoring-system/
+### 📝 5. Quiz System
+
+* Page-wise quiz generation
+* MCQ-based evaluation
+* Score calculation & feedback
+* Tracks learning progress
+
+---
+
+### ✍️ 6. Text Reframing
+
+* Simplifies complex content
+* Keeps meaning intact
+* Helps in revision & understanding
+
+---
+
+### ⚙️ 7. Adaptive Retrieval
+
+* Dynamic **k value based on mode**
+* Re-ranking improves context quality
+* Summarization used for long documents
+
+---
+
+## 📊 Evaluation Highlights
+
+| Metric              | Score |
+| ------------------- | ----- |
+| Recall@K            | 80%   |
+| Precision@K         | 65%   |
+| MRR                 | 70%   |
+| Hit Rate@K          | 90%   |
+| Faithfulness        | 87%   |
+| Semantic Similarity | 80%   |
+| Context Utilization | 77%   |
+
+✔ Demonstrates strong **retrieval accuracy + grounded generation**
+
+---
+
+## 🛠️ Tech Stack
+
+### Backend
+
+* FastAPI
+* LangChain + LangGraph
+* Groq (LLaMA 3.1)
+* FAISS
+* BM25
+
+### Frontend
+
+* React (TypeScript)
+* REST API integration
+
+### ML / NLP
+
+* HuggingFace Transformers
+* Sentence Transformers (all-mpnet-base-v2)
+
+---
+
+## 📂 Project Structure
+
+```
+├── backend/           # FastAPI backend
+│   ├── api/
+│   ├── services/
+│   ├── rag/
+│   └── models/
 │
-├── backend/
-│   ├── app/
-│   │   ├── api/
-│   │   │   └── v1/
-│   │   │       ├── documents/
-│   │   │       └── progress/
-│   │   ├── core/
-│   │   ├── services/
-│   │   │   └── rag/
-│   │   ├── storage/
-│   │   └── main.py
-│   ├── .env
-│   ├── requirements.txt
-│   ├── Dockerfile
-│   └── README.md
-│
-├── frontend/
-│   ├── src/
-│   ├── index.html
-│   ├── package.json
-│   ├── vite.config.ts
-│   ├── Dockerfile
-│   └── README.md
+├── frontend/          # React + TypeScript UI
 │
 ├── docker-compose.yml
-├── .gitignore
+├── requirements_freeze.txt
 └── README.md
+```
 
-🔑 Environment Variables
-Backend (backend/.env)
-GROQ_API_KEY=your_groq_api_key_here
+---
 
-Frontend (Docker build arg)
-VITE_API_BASE_URL=http://backend:8000
+## ⚡ Getting Started
 
-🐳 Docker Setup (Recommended)
-1️⃣ Clone Repository
-git clone https://github.com/your-username/intelligent-tutoring-system.git
-cd intelligent-tutoring-system
+### 1. Clone the repo
 
-2️⃣ Build & Run with Docker Compose
-docker-compose up -d --build
+```bash
+git clone https://github.com/mohdkaif-bit/your-repo-name.git
+cd your-repo-name
+```
 
-3️⃣ Access the App
+---
 
-Frontend:
-👉 http://localhost:5173
+### 2. Run with Docker
 
-Backend API:
-👉 http://localhost:8000
+```bash
+docker-compose up --build
+```
 
-API Docs:
-👉 http://localhost:8000/api/docs
+---
 
-🔗 API Endpoints (Backend)
-Method	Endpoint	Description
-GET	/	API Health Check
-GET	/api/docs	Swagger Docs
-POST	/api/v1/documents/upload	Upload document
-GET	/api/v1/documents/list	List documents
-GET	/api/v1/progress/account	User progress
-☁️ AWS EC2 Deployment (Summary)
+### 3. Run manually
 
-Create EC2 t3.micro (Amazon Linux)
+#### Backend
 
-Open ports:
+```bash
+cd backend
+pip install -r requirements_freeze.txt
+uvicorn app.main:app --reload
+```
 
-22 (SSH)
+#### Frontend
 
-8000 (Backend)
+```bash
+cd frontend
+npm install
+npm run dev
+```
 
-5173 (Frontend)
+---
 
-Install Docker & Docker Compose
+## 🧠 Future Improvements
 
-Clone repo
+* Advanced learner modeling (mastery tracking)
+* Multi-language support
+* Voice & OCR integration
+* Knowledge graph integration
+* Mobile/offline deployment
+* Reinforcement learning-based personalization
 
-Create backend/.env
+---
 
-Run:
+## 📌 Key Contributions
 
-docker-compose up -d --build
+* Hybrid retrieval (BM25 + semantic)
+* LangGraph-based reasoning pipeline
+* Persistent memory + adaptation layer
+* Multi-mode tutoring system
+* Quiz + reframing integration
 
+---
 
-Open in browser:
+## 👨‍💻 Author
 
-http://<EC2_PUBLIC_IP>:5173
+**Mohd Kaif**
+Machine Learning Engineer
+Focused on AI-powered intelligent systems, RAG pipelines, and LLM applications
 
-⚠️ Important Notes
+---
 
-❌ Do NOT commit .env, node_modules, __pycache__
+## 📜 License
 
-✅ Always use Docker for production
-
-🔄 Rebuild frontend when changing VITE_API_BASE_URL
-
-🔐 Rotate API keys if exposed accidentally
-
-🛠️ Common Issues
-❌ Frontend shows “Failed to fetch”
-
-Ensure:
-
-VITE_API_BASE_URL=http://backend:8000
-
-
-Rebuild frontend container:
-
-docker-compose up -d --build
-
-📌 Future Improvements
-
-🔐 Authentication (JWT)
-
-🧑‍🎓 Multiple users
-
-☁️ S3 / Managed Vector DB
-
-📈 Advanced analytics dashboard
-
-🤖 Chat-based tutor interface
-
-👨‍💻 Author
-
-Mohd Kaif
-📧 Developer of Intelligent Tutoring System
-🌐 Built with FastAPI, RAG, and Docker
-
-⭐ Support
-
-If you found this project helpful, give it a ⭐ on GitHub!
+This project is for academic and research purposes.
