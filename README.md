@@ -229,7 +229,7 @@ Machine Learning Engineer
 Focused on AI-powered intelligent systems, RAG pipelines, and LLM applications
 
 ---
-
+** Demonstration is available 
 ## 📜 License
 
 This project is for academic and research purposes.
