@@ -16,6 +16,7 @@ from app.services.pdf.pdf_processor import PDFProcessor
 from app.services.rag.retriever.vector_retriever import VectorRetriever
 from app.utils.validators.file_validators import FileValidator
 from app.core.logging import get_logger
+from app.storage.user_memory.learning_memory import LearningMemory
 
 logger = get_logger(__name__)
 router = APIRouter()
@@ -199,7 +200,7 @@ async def get_document(document_id: str):
 @router.delete("/{document_id}")
 async def delete_document(document_id: str):
     """
-    Delete a document and its FAISS cache.
+    Delete a document, its FAISS cache, and its learning progress.
     """
     try:
         doc_storage = DocumentStorage(user_id=DEFAULT_USER_ID)
@@ -216,12 +217,16 @@ async def delete_document(document_id: str):
         # Delete FAISS cache
         vector_retriever = VectorRetriever(user_id=DEFAULT_USER_ID)
         cache_deleted = vector_retriever.delete_vectorstore(document_id)
+
+        # Clear learning progress so re-uploads start fresh
+        learning_memory = LearningMemory(user_id=DEFAULT_USER_ID)
+        learning_memory.clear_document(document_id)
         
-        logger.info(f"Deleted document and FAISS cache: {document_id}")
+        logger.info(f"Deleted document, FAISS cache, and learning progress: {document_id}")
         
         return {
             "success": True,
-            "message": f"Document {document_id} and FAISS cache deleted successfully",
+            "message": f"Document {document_id}, FAISS cache, and learning progress deleted successfully",
             "caches_deleted": cache_deleted
         }
         

@@ -56,8 +56,8 @@ class VectorRetriever:
         )
 
         # Default ensemble weights (overridden per-mode by RAGGraph/RAGNodes)
-        self.bm25_weight = 0.25
-        self.faiss_weight = 0.75
+        self.bm25_weight = 0.2
+        self.faiss_weight = 0.8
 
         logger.info("VectorRetriever init — model: %s", settings.EMBEDDING_MODEL)
         logger.info("Default weights — BM25: %.2f  FAISS: %.2f",

@@ -32,7 +32,7 @@ class RetrievalConfig:
 
 RETRIEVAL_CONFIGS: dict[str, RetrievalConfig] = {
     "quick_answer":      RetrievalConfig(k=3,  cap=2,  bm25_w=0.30),
-    "explain_concept":   RetrievalConfig(k=6,  cap=4,  bm25_w=0.40),
+    "explain_concept":   RetrievalConfig(k=6,  cap=4,  bm25_w=0.50),
     "step_by_step":      RetrievalConfig(k=6,  cap=5,  bm25_w=0.40),
     "generate_practice": RetrievalConfig(k=10, cap=8,  bm25_w=0.50),
     "deep_analysis":     RetrievalConfig(k=14, cap=10, bm25_w=0.40),

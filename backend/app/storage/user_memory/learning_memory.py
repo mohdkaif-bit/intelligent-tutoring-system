@@ -421,3 +421,43 @@ class LearningMemory:
         self.memory = {}
         self._save_memory()
         logger.warning(f"Cleared ALL memory for user: {self.user_id}")
+
+    def sync_with_storage(self, known_document_ids: set[str]) -> list[str]:
+        """
+        Remove memory entries for documents that no longer exist in storage.
+
+        Call this after verifying which document IDs are present in both
+        hard storage (disk) and embedding storage. Any memory entry whose
+        document_id is not in known_document_ids will be purged.
+
+        Args:
+            known_document_ids: Set of document IDs currently present in
+                                storage (hard + embedding). Typically built
+                                as the *intersection* of both stores so a
+                                document is only kept when it exists in both.
+
+        Returns:
+            List of document IDs that were removed from memory.
+        """
+        orphaned_ids = [
+            doc_id for doc_id in self.memory
+            if doc_id not in known_document_ids
+        ]
+
+        if not orphaned_ids:
+            logger.debug("sync_with_storage: no orphaned memory entries found")
+            return []
+
+        for doc_id in orphaned_ids:
+            del self.memory[doc_id]
+            logger.info(
+                f"sync_with_storage: removed memory for missing document "
+                f"'{doc_id}' (not found in hard or embedding storage)"
+            )
+
+        self._save_memory()
+        logger.info(
+            f"sync_with_storage: purged {len(orphaned_ids)} orphaned "
+            f"memory entries for user '{self.user_id}'"
+        )
+        return orphaned_ids

@@ -290,3 +290,7 @@ class DocumentStorage:
         self._save_metadata()
         logger.info(f"Renamed document {document_id} to {new_filename}")
         return True
+
+    def get_document_ids(self) -> set[str]:
+        """Return the set of all document IDs currently tracked in storage."""
+        return set(self.documents.keys())
