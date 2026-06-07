@@ -226,7 +226,7 @@ npm run dev
 
 **Mohd Kaif**
 Machine Learning Engineer
-Focused on AI-powered intelligent systems, RAG pipelines, and LLM applications
+Focused on AI-powered intelligent systems, RAG pipelines, and LLM applications.
 
 ---
 ** Demonstration is available 
