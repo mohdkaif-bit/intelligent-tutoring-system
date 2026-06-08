@@ -39,7 +39,7 @@ The system follows a **modular multi-layer architecture**:
 
 * Stores user history (questions, responses, patterns)
 * Avoids repetition and adapts explanations
-* Tracks weak areas and misconceptions
+* Tracks weak areas and misconceptions.
 
 ---
 
