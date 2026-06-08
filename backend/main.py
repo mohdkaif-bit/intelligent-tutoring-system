@@ -28,7 +28,7 @@ async def lifespan(app: FastAPI):
     logger.info(f"API Prefix: {settings.API_V1_PREFIX}")
     logger.info("=" * 60)
 
-    # Ensure storage directories exist
+    # Ensure storage directories exi
     settings.STORAGE_BASE_DIR.mkdir(parents=True, exist_ok=True)
     settings.DOCUMENT_STORAGE_DIR.mkdir(parents=True, exist_ok=True)
     settings.VECTOR_STORAGE_DIR.mkdir(parents=True, exist_ok=True)
