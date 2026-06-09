@@ -1,77 +1,99 @@
 # 🧠 Intelligent Personalized Tutoring System
 
-An AI-powered tutoring system that delivers **personalized, document-grounded learning** using **RAG, hybrid retrieval (BM25 + semantic search), LangGraph-based reasoning, and persistent memory**.
+> **AI-powered tutoring platform with Retrieval-Augmented Generation (RAG), LangGraph reasoning, hybrid search, persistent memory, and adaptive learning.**
+
+<p align="center">
+
+![Python](https://img.shields.io/badge/Python-3.11-blue)
+![FastAPI](https://img.shields.io/badge/FastAPI-Backend-green)
+![React](https://img.shields.io/badge/React-TypeScript-61dafb)
+![Docker](https://img.shields.io/badge/Docker-Containerized-blue)
+![LangGraph](https://img.shields.io/badge/LangGraph-Agent-orange)
+![License](https://img.shields.io/badge/License-Academic-lightgrey)
+
+</p>
 
 ---
 
-## 🚀 Overview
+# 🚀 Overview
 
-This project implements a next-generation **Intelligent Tutoring System (ITS)** that goes beyond traditional LLM-based Q&A systems by incorporating:
+The **Intelligent Personalized Tutoring System (ITS)** is an AI-powered learning platform designed to provide personalized, document-grounded tutoring experiences.
 
-* 📚 **Document-grounded learning (RAG)**
-* 🧠 **Persistent memory for personalization**
-* 🔍 **Hybrid retrieval (BM25 + semantic similarity)**
-* 🔄 **Multi-step reasoning using LangGraph**
-* 🎯 **Multi-mode learning experience**
-* 📊 **Quiz generation & evaluation**
-* ✍️ **Text reframing for better understanding**
+Unlike traditional chatbots, the system combines:
 
-The system enables learners to upload PDFs and receive **accurate, structured, and adaptive explanations** aligned with their own study material.
+* 📚 Retrieval-Augmented Generation (RAG)
+* 🔍 Hybrid Retrieval (BM25 + Semantic Search)
+* 🧠 Persistent User Memory
+* 🔄 LangGraph Multi-Step Reasoning
+* 📊 Quiz Generation & Evaluation
+* ✍️ AI-powered Text Reframing
 
----
-
-## 🏗️ System Architecture
-
-The system follows a **modular multi-layer architecture**:
-
-* **Frontend** → React (TypeScript)
-* **Backend** → FastAPI (Python)
-* **Retrieval Layer** → BM25 + FAISS (Hybrid Search)
-* **Reasoning Engine** → LangGraph (multi-node pipeline)
-* **LLM** → Groq (LLaMA 3.1)
-* **Memory Module** → Persistent user interaction storage
+allowing learners to upload study material and receive adaptive, context-aware explanations grounded in their own documents.
 
 ---
 
-## 🔍 Key Features
+# ✨ Features
 
-### 🧠 1. Memory-Based Personalization
+## 📄 Document-based Learning
 
-* Stores user history (questions, responses, patterns)
-* Avoids repetition and adapts explanations
-* Tracks weak areas and misconceptions.
-
----
-
-### 🔎 2. Hybrid Retrieval Pipeline
-
-* Combines:
-
-  * **BM25 (lexical search)**
-  * **Semantic similarity (FAISS embeddings)**
-* Uses **Reciprocal Rank Fusion (RRF)** for better ranking
-* Improves recall + precision significantly
+* Upload PDFs
+* Automatic chunking & indexing
+* Semantic embeddings generation
+* Context-aware responses
 
 ---
 
-### 🔁 3. LangGraph Multi-Step Reasoning
+## 🔍 Hybrid Retrieval
 
-Pipeline includes:
+Combines:
 
-1. Retrieval Node
-2. Re-ranking Node
-3. Summarization Node (analysis mode)
-4. Combine Node
-5. Answer Generation Node
-6. Memory Update Node
+* BM25 lexical search
+* FAISS semantic similarity search
+* Reciprocal Rank Fusion (RRF)
 
-✔ Supports **adaptive workflows & conditional logic**
+for improved retrieval precision and recall.
 
 ---
 
-### 🎯 4. Multi-Mode Learning
+## 🧠 Personalized Learning
 
-Supports different interaction modes:
+Persistent memory stores:
+
+* Previous conversations
+* Learning patterns
+* Weak topics
+* User preferences
+
+making responses adaptive over time.
+
+---
+
+## 🔄 LangGraph Reasoning Pipeline
+
+```
+User Query
+      │
+      ▼
+Retrieve Documents
+      │
+      ▼
+Re-rank Context
+      │
+      ▼
+Summarize (Analysis Mode)
+      │
+      ▼
+Generate Response
+      │
+      ▼
+Update Memory
+```
+
+Supports conditional workflows and multi-step reasoning.
+
+---
+
+## 🎯 Multi Learning Modes
 
 * ⚡ Quick Answer
 * 📖 Explain Concept
@@ -81,155 +103,256 @@ Supports different interaction modes:
 
 ---
 
-### 📝 5. Quiz System
+## 📝 Quiz Module
 
 * Page-wise quiz generation
-* MCQ-based evaluation
-* Score calculation & feedback
-* Tracks learning progress
+* MCQ evaluation
+* Automatic scoring
+* Performance tracking
+* Feedback generation
 
 ---
 
-### ✍️ 6. Text Reframing
+## ✍️ Text Reframing
 
-* Simplifies complex content
-* Keeps meaning intact
-* Helps in revision & understanding
+Converts difficult content into:
 
----
+* Beginner-friendly explanations
+* Simplified language
+* Revision notes
 
-### ⚙️ 7. Adaptive Retrieval
-
-* Dynamic **k value based on mode**
-* Re-ranking improves context quality
-* Summarization used for long documents
+while preserving the original meaning.
 
 ---
 
-## 📊 Evaluation Highlights
-
-| Metric              | Score |
-| ------------------- | ----- |
-| Recall@K            | 80%   |
-| Precision@K         | 65%   |
-| MRR                 | 70%   |
-| Hit Rate@K          | 90%   |
-| Faithfulness        | 87%   |
-| Semantic Similarity | 80%   |
-| Context Utilization | 77%   |
-
-✔ Demonstrates strong **retrieval accuracy + grounded generation**
-
----
-
-## 🛠️ Tech Stack
-
-### Backend
-
-* FastAPI
-* LangChain + LangGraph
-* Groq (LLaMA 3.1)
-* FAISS
-* BM25
-
-### Frontend
-
-* React (TypeScript)
-* REST API integration
-
-### ML / NLP
-
-* HuggingFace Transformers
-* Sentence Transformers (all-mpnet-base-v2)
-
----
-
-## 📂 Project Structure
+# 🏗️ System Architecture
 
 ```
-├── backend/           # FastAPI backend
-│   ├── api/
-│   ├── services/
-│   ├── rag/
-│   └── models/
+                React Frontend
+                       │
+                       ▼
+                FastAPI Backend
+                       │
+                       ▼
+             LangGraph Reasoning Engine
+                       │
+        ┌──────────────┼───────────────┐
+        │                              │
+        ▼                              ▼
+ Hybrid Retrieval              Persistent Memory
+(BM25 + FAISS)                User Learning History
+        │                              │
+        └──────────────┬───────────────┘
+                       ▼
+                  Groq LLM (LLaMA)
+```
+
+---
+
+# 🛠️ Tech Stack
+
+## Backend
+
+* FastAPI
+* LangChain
+* LangGraph
+* Groq API
+* FAISS
+* BM25
+* Sentence Transformers
+* PyMuPDF
+
+---
+
+## Frontend
+
+* React
+* TypeScript
+* Vite
+* Context API
+* React Router
+
+---
+
+## AI / NLP
+
+* Retrieval-Augmented Generation (RAG)
+* Hybrid Search
+* HuggingFace Transformers
+* all-mpnet-base-v2 Embeddings
+
+---
+
+## Infrastructure
+
+* Docker
+* Docker Compose
+* Environment-based Configuration
+
+---
+
+# 🔐 Authentication
+
+* Google OAuth Login
+* Protected Routes
+* Session-based Authentication
+* User-specific learning history
+
+---
+
+# 📊 Retrieval Evaluation
+
+| Metric               | Score   |
+| -------------------- | ------- |
+| Recall@K             | **80%** |
+| Precision@K          | **65%** |
+| Mean Reciprocal Rank | **70%** |
+| Hit Rate@K           | **90%** |
+| Faithfulness         | **87%** |
+| Semantic Similarity  | **80%** |
+| Context Utilization  | **77%** |
+
+---
+
+# 📂 Project Structure
+
+```
+intelligent-tutoring-system/
+
+├── backend/
+│   ├── app/
+│   │   ├── api/
+│   │   ├── core/
+│   │   ├── models/
+│   │   ├── services/
+│   │   └── storage/
+│   ├── scripts/
+│   ├── Dockerfile
+│   └── requirements.in
 │
-├── frontend/          # React + TypeScript UI
+├── frontend/
+│   ├── src/
+│   ├── public/
+│   └── Dockerfile
 │
 ├── docker-compose.yml
-├── requirements_freeze.txt
 └── README.md
 ```
 
 ---
 
-## ⚡ Getting Started
+# ⚡ Running Locally
 
-### 1. Clone the repo
+## Clone
 
 ```bash
-git clone https://github.com/mohdkaif-bit/your-repo-name.git
-cd your-repo-name
+git clone https://github.com/mohdkaif-bit/intelligent-tutoring-system.git
+
+cd intelligent-tutoring-system
 ```
 
 ---
 
-### 2. Run with Docker
-
-```bash
-docker-compose up --build
-```
-
----
-
-### 3. Run manually
-
-#### Backend
+## Backend
 
 ```bash
 cd backend
-pip install -r requirements_freeze.txt
-uvicorn app.main:app --reload
+
+pip install -r requirements.txt
+
+uvicorn main:app --reload
 ```
 
-#### Frontend
+---
+
+## Frontend
 
 ```bash
 cd frontend
+
 npm install
+
 npm run dev
 ```
 
 ---
 
-## 🧠 Future Improvements
+# 🐳 Running with Docker
 
-* Advanced learner modeling (mastery tracking)
-* Multi-language support
-* Voice & OCR integration
-* Knowledge graph integration
-* Mobile/offline deployment
-* Reinforcement learning-based personalization
+```bash
+docker compose up --build
+```
+
+Backend
+
+```
+http://localhost:8000
+```
+
+Frontend
+
+```
+http://localhost:3000
+```
 
 ---
 
-## 📌 Key Contributions
+# 📸 Demonstration
 
-* Hybrid retrieval (BM25 + semantic)
-* LangGraph-based reasoning pipeline
-* Persistent memory + adaptation layer
-* Multi-mode tutoring system
-* Quiz + reframing integration
+✅ Complete project demonstration is available.
+
+(https://drive.google.com/file/d/1HVcz0CSOlQGbb2Oagv9LmRJGdFVQyWxm/view?usp=sharing)
 
 ---
 
-## 👨‍💻 Author
+# 🚀 Future Improvements
+
+* Mastery tracking
+* Multi-language tutoring
+* Voice interaction
+* OCR-based learning
+* Knowledge Graph integration
+* Reinforcement Learning personalization
+* Cloud deployment
+
+---
+
+# 💡 Highlights
+
+✔ Hybrid Retrieval (BM25 + Semantic Search)
+
+✔ LangGraph Multi-step Reasoning
+
+✔ Persistent Memory Adaptation
+
+✔ Multi-mode Tutoring
+
+✔ Quiz Generation & Evaluation
+
+✔ Text Reframing
+
+✔ Dockerized Full Stack Application
+
+✔ Google Authentication
+
+---
+
+# 👨‍💻 Author
 
 **Mohd Kaif**
+
 Machine Learning Engineer
-Focused on AI-powered intelligent systems, RAG pipelines, and LLM applications.
+
+Focused on:
+
+* Retrieval-Augmented Generation (RAG)
+* LLM Applications
+* Intelligent Tutoring Systems
+* LangGraph Agents
+* AI-powered Learning Platforms
 
 ---
-** Demonstration is available 
-## 📜 License
 
-This project is for academic and research purposes.
+# 📄 License
+
+This project is intended for academic, research, and educational purposes.
