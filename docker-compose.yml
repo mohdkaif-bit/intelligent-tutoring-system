@@ -1,20 +1,50 @@
+# =============================================================================
+#  docker-compose.yml — root level, orchestrates frontend + backend
+#  Usage:
+#    docker-compose up --build        # build + run both
+#    docker-compose up -d             # run in background
+#    docker-compose down              # stop
+#    docker-compose logs -f backend   # tail backend logs
+# =============================================================================
+
 version: "3.9"
 
 services:
 
+  # ── Backend ─────────────────────────────────────────────────────────────────
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
+      target: runtime              # use final stage, not builder
+    image: its-backend:local
     container_name: learning-buddy-backend
+
     ports:
-      - "8000:8000"
+      - "8000:8080"                # local:8000 → container:8080 (Cloud Run PORT)
+
+    environment:
+      PORT: "8080"                 # matches Cloud Run behaviour
+
     env_file:
       - ./backend/.env
-    volumes:
-      - ./backend/.storage:/app/.storage
-    restart: always
 
+    volumes:
+      # Local storage persists between restarts
+      # Removed in production — GCS replaces this
+      - ./backend/.storage:/app/.storage
+
+    healthcheck:
+      test: ["CMD", "python", "-c",
+             "import urllib.request; urllib.request.urlopen('http://localhost:8080/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s            # give model loading time to complete
+
+    restart: unless-stopped
+
+  # ── Frontend ─────────────────────────────────────────────────────────────────
   frontend:
     build:
       context: ./frontend
@@ -22,11 +52,16 @@ services:
       args:
         VITE_API_BASE_URL: http://localhost:8000
     container_name: learning-buddy-frontend
+
     ports:
-      - "5173:5173"
+      - "3000:5173"                # updated from 517 to match your actual dev port
+
     volumes:
       - ./frontend:/app
       - /app/node_modules
+
     depends_on:
-      - backend
-    restart: always
+      backend:
+        condition: service_healthy # wait for backend health check before starting
+
+    restart: unless-stopped

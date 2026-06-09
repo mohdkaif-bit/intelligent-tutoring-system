@@ -39,6 +39,10 @@ class DocumentStorage:
         self.user_id = user_id
         self.storage_base_dir = storage_base_dir or settings.DOCUMENT_STORAGE_DIR
         self.user_storage_dir = self.storage_base_dir / user_id
+        
+        
+        print(f"DOCUMENT STORAGE USER={user_id}")
+        print(f"DOCUMENT STORAGE PATH={self.user_storage_dir}")
         self.metadata_file = self.user_storage_dir / "documents_metadata.json"
         
         # Create directories if they don't exist

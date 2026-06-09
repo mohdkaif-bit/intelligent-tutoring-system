@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Loader } from "../components/common/Common";
 import { DocumentMetadata, RevisionSuggestion } from "../types/types";
+import { useApp } from "../context/AppContext";
 
 import {
   uploadDocument as apiUploadDocument,
@@ -41,6 +42,8 @@ function shortDocName(documentId: string): string {
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
+  const { user, signOut } = useApp();
+
   const [documents, setDocuments] = useState<DocumentMetadata[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -48,6 +51,7 @@ const Home: React.FC = () => {
   const [dragActive, setDragActive] = useState(false);
   const [progressStats, setProgressStats] = useState<any>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
 
   // Right sidebar tab state
   const [rightTab, setRightTab] = useState<"documents" | "suggestions">("documents");
@@ -197,15 +201,61 @@ const Home: React.FC = () => {
     return m > 0 ? `${h}h ${m}m` : `${h}h`;
   };
 
+  // ── derived user values ──────────────────────────────────────────────────
+  const userInitial = user?.email?.[0]?.toUpperCase() ?? "U";
+  const userEmail   = user?.email ?? "";
+  const userName    = user?.user_metadata?.full_name ?? "";
+
   return (
     <div style={styles.container}>
       {/* Header */}
       <header style={styles.header}>
         <div style={styles.headerContent}>
-          <h1 style={styles.logo}>📚 Personalized Learning Buddy</h1>
-          <p style={styles.tagline}>
-            Personalized Learning, Powered by Pedagogy-Aware AI
-          </p>
+          <div style={styles.headerLeft}>
+            <h1 style={styles.logo}>📚 Personalized Learning Buddy</h1>
+            <p style={styles.tagline}>
+              Personalized Learning, Powered by Pedagogy-Aware AI
+            </p>
+          </div>
+
+          {/* ── user menu ── */}
+          <div style={styles.userWrap}>
+            <button
+              style={styles.avatarBtn}
+              onClick={() => setUserMenuOpen((v) => !v)}
+              title={userEmail}
+            >
+              <span style={styles.avatarCircle}>{userInitial}</span>
+            </button>
+
+            {userMenuOpen && (
+              <>
+                <div
+                  style={styles.backdrop}
+                  onClick={() => setUserMenuOpen(false)}
+                />
+                <div style={styles.dropdown}>
+                  <div style={styles.dropdownHeader}>
+                    <div style={styles.dropdownAvatar}>{userInitial}</div>
+                    <div style={styles.dropdownInfo}>
+                      {userName && (
+                        <span style={styles.dropdownName}>{userName}</span>
+                      )}
+                      <span style={styles.dropdownEmail}>{userEmail}</span>
+                    </div>
+                  </div>
+                  <div style={styles.dropdownDivider} />
+                  <button
+                    style={styles.dropdownItem}
+                    onClick={() => { setUserMenuOpen(false); signOut(); }}
+                  >
+                    <span>🚪</span>
+                    Sign out
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </header>
 
@@ -290,17 +340,13 @@ const Home: React.FC = () => {
                   </span>
                 </div>
                 <div style={styles.progressDetail}>
-                  <span style={styles.progressDetailLabel}>
-                    Pages with Engagement
-                  </span>
+                  <span style={styles.progressDetailLabel}>Pages with Engagement</span>
                   <span style={styles.progressDetailValue}>
                     {progressStats.pages_with_engagement || 0}
                   </span>
                 </div>
                 <div style={styles.progressDetail}>
-                  <span style={styles.progressDetailLabel}>
-                    Pages Needing Attention
-                  </span>
+                  <span style={styles.progressDetailLabel}>Pages Needing Attention</span>
                   <span
                     style={{
                       ...styles.progressDetailValue,
@@ -314,17 +360,13 @@ const Home: React.FC = () => {
                   </span>
                 </div>
                 <div style={styles.progressDetail}>
-                  <span style={styles.progressDetailLabel}>
-                    Completion Rate
-                  </span>
+                  <span style={styles.progressDetailLabel}>Completion Rate</span>
                   <span style={styles.progressDetailValue}>
                     {Math.round((progressStats.completion_rate || 0) * 100)}%
                   </span>
                 </div>
                 <div style={styles.progressDetail}>
-                  <span style={styles.progressDetailLabel}>
-                    Engagement Rate
-                  </span>
+                  <span style={styles.progressDetailLabel}>Engagement Rate</span>
                   <span style={styles.progressDetailValue}>
                     {Math.round((progressStats.engagement_rate || 0) * 100)}%
                   </span>
@@ -410,7 +452,6 @@ const Home: React.FC = () => {
 
         {/* Right Sidebar — Documents + Suggestions tabs */}
         <aside style={styles.rightSidebar}>
-          {/* Tab header */}
           <div style={styles.tabHeader}>
             <button
               style={{
@@ -444,7 +485,6 @@ const Home: React.FC = () => {
             </button>
           </div>
 
-          {/* Documents tab */}
           {rightTab === "documents" && (
             <div style={styles.documentsList}>
               {loading ? (
@@ -471,7 +511,6 @@ const Home: React.FC = () => {
             </div>
           )}
 
-          {/* Suggestions tab */}
           {rightTab === "suggestions" && (
             <div style={styles.documentsList}>
               {suggestionsLoading ? (
@@ -576,17 +615,12 @@ const SuggestionCard: React.FC<{
         </span>
         <span style={styles.suggestionPage}>Page {s.page_number}</span>
       </div>
-
       <p style={styles.suggestionDoc}>{docName}</p>
-
       <div style={styles.reasonsRow}>
         {s.reasons.map((r, i) => (
-          <span key={i} style={styles.reasonPill}>
-            {r}
-          </span>
+          <span key={i} style={styles.reasonPill}>{r}</span>
         ))}
       </div>
-
       <div style={styles.suggestionArrow}>→ Open page</div>
     </div>
   );
@@ -606,16 +640,129 @@ const styles: Record<string, React.CSSProperties> = {
   header: {
     background: "var(--color-surface)",
     borderBottom: "1px solid var(--color-border)",
-    padding: "24px 32px",
+    padding: "20px 32px",
   },
-  headerContent: { maxWidth: 1600, margin: "0 auto" },
+  headerContent: {
+    maxWidth: 1600,
+    margin: "0 auto",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  headerLeft: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 4,
+  },
   logo: {
     fontSize: 28,
     fontWeight: 700,
     color: "var(--color-text)",
-    margin: "0 0 8px 0",
+    margin: 0,
   },
   tagline: { fontSize: 14, color: "var(--color-text-muted)", margin: 0 },
+
+  // ── user menu ──
+  userWrap: {
+    position: "relative" as const,
+    flexShrink: 0,
+  },
+  avatarBtn: {
+    background: "none",
+    border: "none",
+    padding: 0,
+    cursor: "pointer",
+    display: "flex",
+    alignItems: "center",
+  },
+  avatarCircle: {
+    width: 38,
+    height: 38,
+    borderRadius: "50%",
+    background: "var(--color-primary)",
+    color: "#fff",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: 15,
+    fontWeight: 600,
+    userSelect: "none" as const,
+  },
+  backdrop: {
+    position: "fixed" as const,
+    inset: 0,
+    zIndex: 99,
+  },
+  dropdown: {
+    position: "absolute" as const,
+    top: "calc(100% + 8px)",
+    right: 0,
+    zIndex: 100,
+    background: "var(--color-surface)",
+    border: "0.5px solid var(--color-border)",
+    borderRadius: 12,
+    minWidth: 220,
+    boxShadow: "var(--shadow)",
+    overflow: "hidden",
+  },
+  dropdownHeader: {
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
+    padding: "14px 16px",
+  },
+  dropdownAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: "50%",
+    background: "var(--color-primary)",
+    color: "#fff",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: 14,
+    fontWeight: 600,
+    flexShrink: 0,
+  },
+  dropdownInfo: {
+    display: "flex",
+    flexDirection: "column" as const,
+    minWidth: 0,
+  },
+  dropdownName: {
+    fontSize: 13,
+    fontWeight: 600,
+    color: "var(--color-text)",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap" as const,
+  },
+  dropdownEmail: {
+    fontSize: 12,
+    color: "var(--color-text-muted)",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap" as const,
+  },
+  dropdownDivider: {
+    height: "0.5px",
+    background: "var(--color-border)",
+    marginInline: 12,
+  },
+  dropdownItem: {
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
+    width: "100%",
+    padding: "11px 16px",
+    background: "none",
+    border: "none",
+    cursor: "pointer",
+    fontSize: 14,
+    color: "var(--color-danger)",
+    textAlign: "left" as const,
+  },
+
   mainLayout: {
     display: "flex",
     flex: 1,
@@ -769,8 +916,7 @@ const styles: Record<string, React.CSSProperties> = {
     transition: "all 0.2s",
   },
   highlightCard: {
-    background:
-      "linear-gradient(135deg, rgba(108, 99, 255, 0.1), rgba(139, 92, 246, 0.1))",
+    background: "linear-gradient(135deg, rgba(108, 99, 255, 0.1), rgba(139, 92, 246, 0.1))",
     border: "1px solid rgba(108, 99, 255, 0.3)",
   },
   statIcon: { fontSize: 28, flexShrink: 0 },

@@ -3,8 +3,9 @@ import { useApp } from "../../context/AppContext";
 import DocumentList from "../pdf/DocumentList";
 
 const TopBar = () => {
-  const { selectedDocument, progress, uploadNewDocument, loading } = useApp();
+  const { selectedDocument, progress, uploadNewDocument, loading, user, signOut } = useApp();
   const [docListOpen, setDocListOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // ── upload handler (input change) ───────────────────────────────────────
@@ -12,7 +13,7 @@ const TopBar = () => {
     const file = e.target.files?.[0];
     if (file) {
       uploadNewDocument(file);
-      e.target.value = ""; // reset so the same file can be re-uploaded
+      e.target.value = "";
     }
   }, [uploadNewDocument]);
 
@@ -31,20 +32,21 @@ const TopBar = () => {
     if (file) uploadNewDocument(file);
   };
 
+  // ── derived user display values ──────────────────────────────────────────
+  const userInitial  = user?.email?.[0]?.toUpperCase() ?? "U";
+  const userEmail    = user?.email ?? "";
+  const userName     = user?.user_metadata?.full_name ?? "";
+
   return (
     <>
       <div
-        style={{
-          ...styles.bar,
-          ...(dragOver ? styles.barDragOver : {}),
-        }}
+        style={{ ...styles.bar, ...(dragOver ? styles.barDragOver : {}) }}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
       >
         {/* ── LEFT: document selector ── */}
         <div style={styles.left}>
-          {/* current doc button */}
           <button onClick={() => setDocListOpen(true)} style={styles.docBtn}>
             <span style={styles.docBtnIcon}>📄</span>
             <span style={styles.docBtnLabel}>
@@ -53,7 +55,6 @@ const TopBar = () => {
             <span style={styles.docBtnChevron}>▾</span>
           </button>
 
-          {/* upload button (hidden native input) */}
           <input
             ref={fileInputRef}
             type="file"
@@ -71,22 +72,64 @@ const TopBar = () => {
           </button>
         </div>
 
-        {/* ── RIGHT: progress stats ── */}
+        {/* ── CENTER: progress stats ── */}
         <div style={styles.right}>
           {progress ? (
             <div style={styles.statsRow}>
-              <Stat icon="📖" value={progress.total_pages_viewed} label="Pages" />
-              <Stat icon="💬" value={progress.total_questions_asked} label="Questions" />
-              <Stat icon="📝" value={progress.total_quizzes_completed} label="Quizzes" />
+              <Stat icon="📖" value={progress.total_pages_viewed}      label="Pages"     />
+              <Stat icon="💬" value={progress.total_questions_asked}    label="Questions" />
+              <Stat icon="📝" value={progress.total_quizzes_completed}  label="Quizzes"   />
               <Stat icon="🎯" value={`${Math.round(progress.average_quiz_score * 100)}%`} label="Avg Score" />
             </div>
           ) : (
             <span style={styles.noProgress}>No progress yet</span>
           )}
         </div>
+
+        {/* ── RIGHT: user avatar + dropdown ── */}
+        <div style={styles.userWrap}>
+          <button
+            style={styles.avatarBtn}
+            onClick={() => setUserMenuOpen((v) => !v)}
+            title={userEmail}
+          >
+            <span style={styles.avatarCircle}>{userInitial}</span>
+          </button>
+
+          {userMenuOpen && (
+            <>
+              {/* backdrop to close on outside click */}
+              <div
+                style={styles.backdrop}
+                onClick={() => setUserMenuOpen(false)}
+              />
+              <div style={styles.dropdown}>
+                {/* user info */}
+                <div style={styles.dropdownHeader}>
+                  <div style={styles.dropdownAvatar}>{userInitial}</div>
+                  <div style={styles.dropdownInfo}>
+                    {userName && (
+                      <span style={styles.dropdownName}>{userName}</span>
+                    )}
+                    <span style={styles.dropdownEmail}>{userEmail}</span>
+                  </div>
+                </div>
+
+                <div style={styles.dropdownDivider} />
+
+                <button
+                  style={styles.dropdownItem}
+                  onClick={() => { setUserMenuOpen(false); signOut(); }}
+                >
+                  <span style={styles.dropdownItemIcon}>🚪</span>
+                  Sign out
+                </button>
+              </div>
+            </>
+          )}
+        </div>
       </div>
 
-      {/* ── Document list modal (rendered in a portal-like position via fixed backdrop) ── */}
       <DocumentList open={docListOpen} onClose={() => setDocListOpen(false)} />
     </>
   );
@@ -127,6 +170,8 @@ const styles: Record<string, React.CSSProperties> = {
     display: "flex",
     alignItems: "center",
     gap: 10,
+    minWidth: 0,
+    flex: 1,
   },
   docBtn: {
     display: "flex",
@@ -168,12 +213,15 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 700,
     cursor: "pointer",
     transition: "opacity 0.2s",
+    flexShrink: 0,
   },
 
-  // ── right cluster ───
+  // ── center stats ───
   right: {
     display: "flex",
     alignItems: "center",
+    flex: 1,
+    justifyContent: "center",
   },
   statsRow: {
     display: "flex",
@@ -202,6 +250,112 @@ const styles: Record<string, React.CSSProperties> = {
   noProgress: {
     fontSize: 13,
     color: "var(--color-text-muted)",
+  },
+
+  // ── user avatar + dropdown ───
+  userWrap: {
+    position: "relative" as const,
+    flexShrink: 0,
+  },
+  avatarBtn: {
+    background: "none",
+    border: "none",
+    padding: 0,
+    cursor: "pointer",
+    borderRadius: "50%",
+    display: "flex",
+    alignItems: "center",
+  },
+  avatarCircle: {
+    width: 34,
+    height: 34,
+    borderRadius: "50%",
+    background: "var(--color-primary)",
+    color: "#fff",
+    display: "inline-flex",  // ← was "flex"
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: 14,
+    fontWeight: 600,
+    userSelect: "none" as const,
+  },
+  backdrop: {
+    position: "fixed" as const,
+    inset: 0,
+    zIndex: 99,
+  },
+  dropdown: {
+    position: "absolute" as const,
+    top: "calc(100% + 8px)",
+    right: 0,
+    zIndex: 100,
+    background: "var(--color-surface)",
+    border: "0.5px solid var(--color-border)",
+    borderRadius: 12,
+    minWidth: 220,
+    boxShadow: "var(--shadow)",
+    overflow: "hidden",
+  },
+  dropdownHeader: {
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
+    padding: "14px 16px",
+  },
+  dropdownAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: "50%",
+    background: "var(--color-primary)",
+    color: "#fff",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: 14,
+    fontWeight: 600,
+    flexShrink: 0,
+  },
+  dropdownInfo: {
+    display: "flex",
+    flexDirection: "column" as const,
+    minWidth: 0,
+  },
+  dropdownName: {
+    fontSize: 13,
+    fontWeight: 600,
+    color: "var(--color-text)",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap" as const,
+  },
+  dropdownEmail: {
+    fontSize: 12,
+    color: "var(--color-text-muted)",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap" as const,
+  },
+  dropdownDivider: {
+    height: "0.5px",
+    background: "var(--color-border)",
+    marginInline: 12,
+  },
+  dropdownItem: {
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
+    width: "100%",
+    padding: "11px 16px",
+    background: "none",
+    border: "none",
+    cursor: "pointer",
+    fontSize: 14,
+    color: "var(--color-danger)",
+    textAlign: "left" as const,
+    transition: "background 0.15s",
+  },
+  dropdownItemIcon: {
+    fontSize: 15,
   },
 };
 

@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useCallback } from "react";
+import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
+import { User } from "@supabase/supabase-js";
 import {
   DocumentMetadata,
   DocumentStats,
@@ -14,12 +15,15 @@ import {
   getAccountProgress,
   getRevisionSuggestions,
 } from "../api/api";
+import { supabase } from "../lib/supabase";
 
 // ================================
 // Context Types
 // ================================
 
 interface AppContextType {
+  user: User | null;
+  authLoading: boolean;
   documents: DocumentMetadata[];
   selectedDocument: DocumentMetadata | null;
   stats: DocumentStats | null;
@@ -27,7 +31,7 @@ interface AppContextType {
   suggestions: RevisionSuggestion[];
   loading: boolean;
   error: string | null;
-  
+
   // Actions
   fetchDocuments: () => Promise<void>;
   selectDocument: (doc: DocumentMetadata | null) => void;
@@ -37,6 +41,7 @@ interface AppContextType {
   fetchProgress: () => Promise<void>;
   fetchSuggestions: () => Promise<void>;
   clearError: () => void;
+  signOut: () => Promise<void>;
 }
 
 // ================================
@@ -50,6 +55,8 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 // ================================
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [user, setUser] = useState<User | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
   const [documents, setDocuments] = useState<DocumentMetadata[]>([]);
   const [selectedDocument, setSelectedDocument] = useState<DocumentMetadata | null>(null);
   const [stats, setStats] = useState<DocumentStats | null>(null);
@@ -58,7 +65,34 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch all documents
+  // ── Auth ──────────────────────────────────────────────────────────────────
+
+  useEffect(() => {
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+      setAuthLoading(false);
+    });
+
+    // Listen for auth changes (login, logout, token refresh)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const signOut = useCallback(async () => {
+    await supabase.auth.signOut();
+    setDocuments([]);
+    setSelectedDocument(null);
+    setStats(null);
+    setProgress(null);
+    setSuggestions([]);
+  }, []);
+
+  // ── Documents ─────────────────────────────────────────────────────────────
+
   const fetchDocuments = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -76,23 +110,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   }, []);
 
-  // Select a document
   const selectDocument = useCallback((doc: DocumentMetadata | null) => {
     setSelectedDocument(doc);
   }, []);
 
-  // Remove/delete a document
   const removeDocument = useCallback(async (documentId: string) => {
     setLoading(true);
     setError(null);
     try {
       const res = await deleteDocument(documentId);
       if (res.success) {
-        // Filter out the deleted document - using 'id' not 'document_id'
         setDocuments((prev) => prev.filter((d) => d.document_id !== documentId));
-        
-        // If the deleted doc was selected, clear selection
-        if (selectedDocument?.document_id === documentId){
+        if (selectedDocument?.document_id === documentId) {
           setSelectedDocument(null);
         }
       } else {
@@ -105,14 +134,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   }, [selectedDocument]);
 
-  // Upload a new document
   const uploadNewDocument = useCallback(async (file: File) => {
     setLoading(true);
     setError(null);
     try {
       const res = await uploadDocument(file);
       if (res.success) {
-        // Refresh documents list after upload
         await fetchDocuments();
       } else {
         setError(res.error || "Failed to upload document");
@@ -124,48 +151,42 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   }, [fetchDocuments]);
 
-  // Fetch storage stats
+  // ── Stats / Progress ──────────────────────────────────────────────────────
+
   const fetchStats = useCallback(async () => {
     try {
       const res = await getStorageStats();
-      if (res.success) {
-        setStats(res.stats);
-      }
+      if (res.success) setStats(res.stats);
     } catch (e) {
       console.error("Failed to fetch stats:", e);
     }
   }, []);
 
-  // Fetch account progress
   const fetchProgress = useCallback(async () => {
     try {
       const res = await getAccountProgress();
-      if (res.success) {
-        setProgress(res.progress);
-      }
+      if (res.success) setProgress(res.progress);
     } catch (e) {
       console.error("Failed to fetch progress:", e);
     }
   }, []);
 
-  // Fetch revision suggestions
   const fetchSuggestions = useCallback(async () => {
     try {
       const res = await getRevisionSuggestions();
-      if (res.success) {
-        setSuggestions(res.suggestions);
-      }
+      if (res.success) setSuggestions(res.suggestions);
     } catch (e) {
       console.error("Failed to fetch suggestions:", e);
     }
   }, []);
 
-  // Clear error
-  const clearError = useCallback(() => {
-    setError(null);
-  }, []);
+  const clearError = useCallback(() => setError(null), []);
+
+  // ── Value ─────────────────────────────────────────────────────────────────
 
   const value: AppContextType = {
+    user,
+    authLoading,
     documents,
     selectedDocument,
     stats,
@@ -181,6 +202,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     fetchProgress,
     fetchSuggestions,
     clearError,
+    signOut,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

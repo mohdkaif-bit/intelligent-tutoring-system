@@ -16,8 +16,8 @@ import {
   AccountProgressResponse,
   RevisionSuggestionsResponse,
 } from "../types/types";
+import { supabase } from "../lib/supabase";
 
-// Replace this with your actual API base URL
 const API_BASE_URL =
   (import.meta.env.VITE_API_BASE_URL || "http://localhost:8000") + "/api/v1";
 
@@ -25,18 +25,26 @@ const API_BASE_URL =
 // Helper Functions
 // ================================
 
+const getAuthHeaders = async (): Promise<Record<string, string>> => {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) return {};
+  return { Authorization: `Bearer ${session.access_token}` };
+};
+
 const handleResponse = async (response: Response) => {
   if (!response.ok) {
     const error = await response.json().catch(() => ({ error: "Network error" }));
-    throw new Error(error.error || `HTTP ${response.status}`);
+    throw new Error(error.detail || error.error || `HTTP ${response.status}`);
   }
   return response.json();
 };
 
 const apiCall = async (endpoint: string, options: RequestInit = {}) => {
+  const authHeaders = await getAuthHeaders();
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
     headers: {
       "Content-Type": "application/json",
+      ...authHeaders,
       ...options.headers,
     },
     ...options,
@@ -49,11 +57,13 @@ const apiCall = async (endpoint: string, options: RequestInit = {}) => {
 // ================================
 
 export const uploadDocument = async (file: File) => {
+  const authHeaders = await getAuthHeaders();
   const formData = new FormData();
   formData.append("file", file);
 
   const response = await fetch(`${API_BASE_URL}/documents/upload`, {
     method: "POST",
+    headers: authHeaders,
     body: formData,
   });
 
@@ -170,12 +180,10 @@ export const getRevisionSuggestions = async (): Promise<RevisionSuggestionsRespo
   return apiCall("/progress/suggestions");
 };
 
-// Get quiz stats for a specific document
 export const getDocumentQuizStats = async (documentId: string) => {
   return apiCall(`/quiz/stats/${documentId}`);
 };
 
-// Get revision stats for a specific document
 export const getDocumentRevisionStats = async (documentId: string) => {
   return apiCall(`/progress/document/${documentId}/revisions`);
 };

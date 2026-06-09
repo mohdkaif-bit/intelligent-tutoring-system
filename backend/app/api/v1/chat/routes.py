@@ -3,8 +3,9 @@ Chat API Routes
 Handles question answering using RAG system.
 """
 import re
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 
+from app.api.v1.auth.dependencies import CurrentUser
 from app.models.chat.schemas import ChatRequest, ChatResponse
 from app.storage.documents import DocumentStorage
 from app.services.rag.graph.rag_graph import RAGGraph, RETRIEVAL_CONFIGS, DEFAULT_CONFIG
@@ -17,18 +18,14 @@ from app.core.logging import get_logger
 logger = get_logger(__name__)
 router = APIRouter()
 
-DEFAULT_USER_ID = "default_user"
 
 # ── mode alias normalisation ──────────────────────────────────────────────────
-# Maps any client-sent mode string → canonical backend mode.
-# Add new aliases here; nothing else in the file needs to change.
 MODE_ALIASES: dict[str, str] = {
     "practice_problems": "generate_practice",
 }
 
-# ── singletons ────────────────────────────────────────────────────────────────
-_rag_graph        = RAGGraph()
-_vector_retriever = VectorRetriever(user_id=DEFAULT_USER_ID)
+# ── RAGGraph singleton (stateless — safe to share across users) ───────────────
+_rag_graph = RAGGraph()
 
 
 # ── helpers ───────────────────────────────────────────────────────────────────
@@ -38,19 +35,7 @@ def _clean_tokens(text: str) -> list[str]:
     return [t for t in re.sub(r"[^\w\s]", "", text.lower()).split() if t]
 
 
-def _log_hybrid_details(
-    retriever,
-    question: str,
-    raw_docs: list,
-    mode: str,
-    k: int,
-) -> None:
-    """
-    Log retrieval details from the ALREADY-FETCHED raw_docs.
-    No extra retriever calls — counts come from the result we already have.
-    Sub-retriever doc counts are estimated from the ensemble's retrievers
-    only if needed for debugging, and only by checking .k not re-invoking.
-    """
+def _log_hybrid_details(retriever, question, raw_docs, mode, k) -> None:
     logger.info("Retrieval mode=%s  k_per_retriever=%d", mode, k)
     logger.info("Hybrid RRF result: %d docs", len(raw_docs))
     logger.info("BM25 query tokens (cleaned): %s", _clean_tokens(question))
@@ -70,7 +55,7 @@ def _log_hybrid_details(
 
 
 @router.post("/ask", response_model=ChatResponse)
-async def ask_question(request: ChatRequest):
+async def ask_question(request: ChatRequest, user: CurrentUser):
     """
     Ask a question about course materials using RAG.
     Single retrieval pass, mode-aware from the start.
@@ -79,14 +64,11 @@ async def ask_question(request: ChatRequest):
         # ── 0. Normalise mode aliases ─────────────────────────────────────
         canonical_mode = MODE_ALIASES.get(request.mode, request.mode)
         if canonical_mode != request.mode:
-            logger.info(
-                "Mode alias resolved: %s → %s",
-                request.mode, canonical_mode,
-            )
+            logger.info("Mode alias resolved: %s → %s", request.mode, canonical_mode)
         request = request.model_copy(update={"mode": canonical_mode})
 
         # ── 1. Resolve document path ──────────────────────────────────────
-        doc_storage = DocumentStorage(user_id=DEFAULT_USER_ID)
+        doc_storage = DocumentStorage(user_id=user.id)
         doc_path    = doc_storage.get_document_path(request.document_id)
 
         if not doc_path:
@@ -95,17 +77,18 @@ async def ask_question(request: ChatRequest):
                 detail=f"Document {request.document_id} not found",
             )
 
-        # ── 2. Load indexes (cache hit after first request) ───────────────
-        _vector_retriever.load_or_create_vectorstore(
+        # ── 2. Per-request VectorRetriever (user-scoped) ──────────────────
+        # Cannot be a module-level singleton — each user has their own
+        # vectorstore path derived from user.id / storage_key.
+        vector_retriever = VectorRetriever(user_id=user.id)
+        vector_retriever.load_or_create_vectorstore(
             document_id=request.document_id,
             pdf_path=doc_path,
         )
 
         # ── 3. Build ONE mode-tuned retriever for this request ────────────
-        #       This is the ONLY place retrieval config is applied.
-        #       nodes.py fast-path will use these results directly.
         mode_cfg  = RETRIEVAL_CONFIGS.get(request.mode, DEFAULT_CONFIG)
-        retriever = _vector_retriever.build_mode_ensemble(
+        retriever = vector_retriever.build_mode_ensemble(
             mode   = request.mode,
             k      = mode_cfg.k,
             bm25_w = mode_cfg.bm25_w,
@@ -118,17 +101,15 @@ async def ask_question(request: ChatRequest):
             logger.error("Retrieval failed: %s", exc)
             raw_docs = []
 
-        # Log from already-fetched result — zero extra calls
         _log_hybrid_details(retriever, request.question, raw_docs, request.mode, mode_cfg.k)
 
         # ── 5. Adaptations ────────────────────────────────────────────────
-        style_adapter = StyleAdapter(user_id=DEFAULT_USER_ID)
+        style_adapter = StyleAdapter(user_id=user.id)
 
-        # B — mode suggestion (advisory only, never changes request.mode)
         suggested_mode, suggestion_reason = style_adapter.suggest_mode_with_reason(
-            document_id   = request.document_id,
-            page_number   = request.page_number,
-            requested_mode= request.mode,
+            document_id    = request.document_id,
+            page_number    = request.page_number,
+            requested_mode = request.mode,
         )
         if suggested_mode:
             logger.info(
@@ -136,22 +117,12 @@ async def ask_question(request: ChatRequest):
                 suggested_mode, request.mode, request.page_number, suggestion_reason,
             )
 
-        # A — style hint
         style_hint = style_adapter.get_style_hint(
             document_id = request.document_id,
             page_number = request.page_number,
         )
-        if style_hint:
-            logger.info(
-                "Adaptation A: style hint applied page=%s struggle=%s",
-                request.page_number,
-                style_adapter.get_adaptation_summary(
-                    request.document_id, request.page_number
-                ).get("struggle_level"),
-            )
 
-        # C — context rerank (operates on raw_docs, no new retrieval)
-        context_ranker = ContextRanker(user_id=DEFAULT_USER_ID)
+        context_ranker = ContextRanker(user_id=user.id)
         try:
             reranked_docs = context_ranker.rerank(
                 docs        = raw_docs,
@@ -161,8 +132,6 @@ async def ask_question(request: ChatRequest):
             logger.warning("Context reranking failed (%s), using raw docs.", exc)
             reranked_docs = raw_docs
 
-        # Slice to mode cap — this is the ceiling, rerank_node may reduce
-        # further if score floor cuts some docs
         top_docs_for_state = reranked_docs[: mode_cfg.cap]
 
         logger.info(
@@ -176,13 +145,8 @@ async def ask_question(request: ChatRequest):
             "question":          request.question,
             "mode":              request.mode,
             "style_hint":        style_hint,
-            # retriever kept in state so retrieve_node fallback still works
-            # if top_docs is somehow empty
             "retriever":         retriever,
             "_retrieval_cap":    mode_cfg.cap,
-            # Both set so:
-            #   retrieve_node  → fast-paths on top_docs (correct mode-k docs)
-            #   summarize_node → uses docs (full reranked set for deep_analysis)
             "docs":              reranked_docs,
             "top_docs":          top_docs_for_state,
             "answer":            "",
@@ -210,30 +174,30 @@ async def ask_question(request: ChatRequest):
                 f"__p{doc.metadata.get('page', i)}"
                 for i, doc in enumerate(top_docs)
             ],
-            user_id=DEFAULT_USER_ID,
+            user_id=user.id,
         )
 
         # ── 9. Update learning memory ─────────────────────────────────────
         if request.page_number:
-            memory = LearningMemory(user_id=DEFAULT_USER_ID)
+            memory = LearningMemory(user_id=user.id)
             memory.update_explanation(
                 document_id = request.document_id,
                 page_number = request.page_number,
             )
 
         logger.info(
-            "Done | mode=%s | suggestion=%s | page=%s | style_hint=%s | docs=%d",
-            request.mode, suggested_mode, request.page_number,
-            bool(style_hint), len(top_docs),
+            "Done | user=%s | mode=%s | suggestion=%s | page=%s | docs=%d",
+            user.id, request.mode, suggested_mode,
+            request.page_number, len(top_docs),
         )
 
         return ChatResponse(
-            success          = True,
-            answer           = answer,
-            mode             = request.mode,
-            error            = None,
-            suggested_mode   = suggested_mode,
-            suggestion_reason= suggestion_reason,
+            success           = True,
+            answer            = answer,
+            mode              = request.mode,
+            error             = None,
+            suggested_mode    = suggested_mode,
+            suggestion_reason = suggestion_reason,
         )
 
     except HTTPException:

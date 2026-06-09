@@ -8,6 +8,8 @@ from app.api.v1.chat import router as chat_router
 from app.api.v1.reframe import router as reframe_router
 from app.api.v1.progress import router as progress_router
 from app.api.v1.evaluation import router as evaluation_router   # NEW
+from app.api.v1.auth import router as auth_router
+
 
 
 api_router = APIRouter()
@@ -20,3 +22,4 @@ api_router.include_router(chat_router, prefix="/chat", tags=["chat"])
 api_router.include_router(reframe_router, prefix="/reframe", tags=["reframe"])
 api_router.include_router(progress_router, prefix="/progress", tags=["progress"])
 api_router.include_router(evaluation_router, prefix="/evaluation", tags=["evaluation"])  # NEW
+api_router.include_router(auth_router, prefix="/auth", tags=["auth"])

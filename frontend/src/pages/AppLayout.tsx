@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useApp } from "../context/AppContext";
 import TopBar from "../components/layout/TopBar";
 import SplitView, { ActiveTool, ChatTab } from "../components/layout/SplitView";
@@ -21,11 +21,11 @@ import SplitView, { ActiveTool, ChatTab } from "../components/layout/SplitView";
  *     (the previous Chat / Reframe tab is still there, just hidden while Quiz was open)
  */
 const AppLayout = () => {
-  const { selectedDocument, fetchProgress, fetchSuggestions } = useApp();
+  const { selectedDocument, fetchProgress, fetchSuggestions, signOut, user } = useApp();
 
   // ── tool / tab state ─────────────────────────────────────────────────────
-  const [activeTool, setActiveTool]   = useState<ActiveTool>("chat");
-  const [chatTab,    setChatTab]      = useState<ChatTab>("chat");
+  const [activeTool, setActiveTool] = useState<ActiveTool>("chat");
+  const [chatTab, setChatTab]       = useState<ChatTab>("chat");
   const [currentPage, setCurrentPage] = useState(1);
 
   // ── reset page to 1 whenever the selected document changes ──────────────
@@ -75,6 +75,22 @@ const AppLayout = () => {
           <p style={styles.emptyHint}>
             You can also drag &amp; drop a PDF onto the top bar ↑
           </p>
+
+          {/* ── user info + logout ── */}
+          <div style={styles.userCard}>
+            <div style={styles.userAvatar}>
+              {user?.email?.[0]?.toUpperCase() ?? "U"}
+            </div>
+            <div style={styles.userInfo}>
+              <span style={styles.userEmail}>{user?.email}</span>
+              <span style={styles.userName}>
+                {user?.user_metadata?.full_name ?? ""}
+              </span>
+            </div>
+            <button style={styles.signOutBtn} onClick={signOut}>
+              Sign out
+            </button>
+          </div>
         </div>
       )}
     </div>
@@ -124,6 +140,64 @@ const styles: Record<string, React.CSSProperties> = {
     color: "var(--color-text-muted)",
     opacity: 0.7,
     marginTop: 4,
+  },
+
+  // ── user card ──
+  userCard: {
+    display: "flex",
+    alignItems: "center",
+    gap: 12,
+    marginTop: 32,
+    background: "var(--color-surface)",
+    border: "0.5px solid var(--color-border)",
+    borderRadius: 12,
+    padding: "12px 16px",
+    maxWidth: 360,
+    width: "100%",
+  },
+  userAvatar: {
+    width: 38,
+    height: 38,
+    borderRadius: "50%",
+    background: "var(--color-primary)",
+    color: "#fff",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: 15,
+    fontWeight: 600,
+    flexShrink: 0,
+  },
+  userInfo: {
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "flex-start",
+    flex: 1,
+    minWidth: 0,
+  },
+  userEmail: {
+    fontSize: 13,
+    color: "var(--color-text)",
+    fontWeight: 500,
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+    maxWidth: 180,
+  },
+  userName: {
+    fontSize: 12,
+    color: "var(--color-text-muted)",
+  },
+  signOutBtn: {
+    background: "transparent",
+    border: "0.5px solid var(--color-border)",
+    borderRadius: 8,
+    color: "var(--color-text-muted)",
+    fontSize: 13,
+    padding: "6px 12px",
+    cursor: "pointer",
+    flexShrink: 0,
+    transition: "color 0.15s, border-color 0.15s",
   },
 };
 
